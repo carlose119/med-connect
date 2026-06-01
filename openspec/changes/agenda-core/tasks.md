@@ -137,52 +137,52 @@
 
 > **TDD mandatory** — every `feat` task in this PR is preceded by a `test` commit that fails. `sdd-verify` checks `git log` for the red→green pair.
 
-- [ ] Install Sanctum and publish its config; add `HasApiTokens` to the `User` model and the `role` predicates; mount Sanctum in `routes/api.php` (auth-only group, no business routes yet).
+- [x] Install Sanctum and publish its config; add `HasApiTokens` to the `User` model and the `role` predicates; mount Sanctum in `routes/api.php` (auth-only group, no business routes yet).
   - Files: `composer.json` (mod), `config/sanctum.php`, `app/Models/User.php` (mod), `routes/api.php` (mod)
   - Commit: `feat(state-machine): wire sanctum and hasapitokens on user`
   - Test gate: `php artisan vendor:publish --tag=sanctum-config`; `php artisan route:list --path=api`
 
-- [ ] **TDD: red** — Write `tests/Feature/Auth/RolePredicatesTest.php` asserting `isAdmin/isDoctor/isPatient` are each true for exactly one role and false for the other two. Commit it. It must fail before the next task.
+- [x] **TDD: red** — Write `tests/Feature/Auth/RolePredicatesTest.php` asserting `isAdmin/isDoctor/isPatient` are each true for exactly one role and false for the other two. Commit it. It must fail before the next task.
   - Files: `tests/Feature/Auth/RolePredicatesTest.php`
   - Commit: `test(state-machine): red — role predicates test (fails until next commit)`
   - Test gate: `php artisan test --filter=RolePredicatesTest` exits non-zero
 
-- [ ] **TDD: green** — Implement (or finalise) the three predicates on `User`. Test must pass.
+- [x] **TDD: green** — Implement (or finalise) the three predicates on `User`. Test must pass.
   - Files: `app/Models/User.php` (mod)
   - Commit: `feat(state-machine): green — role predicates pass`
   - Test gate: `php artisan test --filter=RolePredicatesTest` exits 0
 
-- [ ] Create the `AppointmentState` PHP backed enum with the 5 cases `Pending | Confirmed | Completed | Cancelled | NoShow`.
+- [x] Create the `AppointmentState` PHP backed enum with the 5 cases `Pending | Confirmed | Completed | Cancelled | NoShow`.
   - Files: `app/States/AppointmentState.php`
   - Commit: `feat(state-machine): add AppointmentState backed enum`
   - Test gate: `php -r "require 'vendor/autoload.php'; echo enum_exists('App\\States\\AppointmentState');"`
 
-- [ ] Create the 5 state classes: abstract base `Appointment\AppointmentState` extending `Spatie\ModelStates\State`; `Pending` (allowed → `Confirmed`, `Cancelled`); `Confirmed` (allowed → `Completed`, `Cancelled`, `NoShow`); `Completed`, `Cancelled`, `NoShow` (terminal — empty `allowedTransitions()`).
-  - Files: `app/States/Appointment/AppointmentState.php` (abstract), `app/States/Appointment/Pending.php`, `app/States/Appointment/Confirmed.php`, `app/States/Appointment/Completed.php`, `app/States/Appointment/Cancelled.php`, `app/States/Appointment/NoShow.php`
+- [x] Create the 5 state classes: abstract base `Appointment\AppointmentState` extending `Spatie\ModelStates\State`; `Pending` (allowed → `Confirmed`, `Cancelled`); `Confirmed` (allowed → `Completed`, `Cancelled`, `NoShow`); `Completed`, `Cancelled`, `NoShow` (terminal — empty `allowedTransitions()`).
+  - Files: `app/States/Appointment/AppointmentState.php` (abstract), `app/States/Appointment/Pending.php`, `App/States/Appointment/Confirmed.php`, `App/States/Appointment/Completed.php`, `App/States/Appointment/Cancelled.php`, `App/States/Appointment/NoShow.php`
   - Commit: `feat(state-machine): add 5 appointment state classes`
   - Test gate: `php -r "require 'vendor/autoload.php'; echo class_exists('App\\States\\Appointment\\Pending');"`
 
-- [ ] Wire `HasStates` on `Appointment` (the `state` column casts to the enum) and register the 3 Gate policies: `UserPolicy` (admin manage-any), `PatientPolicy` (doctor-assigned or patient-self or admin), `AppointmentPolicy` (patient own, doctor own, admin any).
+- [x] Wire `HasStates` on `Appointment` (the `state` column casts to the enum) and register the 3 Gate policies: `UserPolicy` (admin manage-any), `PatientPolicy` (doctor-assigned or patient-self or admin), `AppointmentPolicy` (patient own, doctor own, admin any).
   - Files: `app/Models/Appointment.php` (mod), `app/Policies/UserPolicy.php`, `app/Policies/PatientPolicy.php`, `app/Policies/AppointmentPolicy.php`
   - Commit: `feat(state-machine): wire hasstates and 3 gate policies`
   - Test gate: `php artisan test --filter=RolePredicatesTest` (regression) + `php -r "require 'vendor/autoload.php'; echo class_exists('App\\Policies\\AppointmentPolicy');"`
 
-- [ ] Create the domain exception base `DomainException` (carries `httpStatus()`) and `InvalidStateTransitionException` (422). Both live in `app/Exceptions/Domain/`. The base class is used by PR 4's exceptions; the state-transition one is exercised in this PR.
+- [x] Create the domain exception base `DomainException` (carries `httpStatus()`) and `InvalidStateTransitionException` (422). Both live in `app/Exceptions/Domain/`. The base class is used by PR 4's exceptions; the state-transition one is exercised in this PR.
   - Files: `app/Exceptions/Domain/DomainException.php`, `app/Exceptions/Domain/InvalidStateTransitionException.php`
   - Commit: `feat(state-machine): add DomainException base + InvalidStateTransition`
   - Test gate: `php -r "require 'vendor/autoload.php'; echo class_exists('App\\Exceptions\\Domain\\InvalidStateTransitionException');"`
 
-- [ ] Create the 4 custom `Transition` classes extending `Spatie\ModelStates\Transition`: `ConfirmAppointmentTransition` (rejects patient actor), `CompleteAppointmentTransition` (doctor assigned only), `CancelAppointmentTransition` (24h patient window applied later in `CancelAppointmentAction`), `MarkNoShowTransition` (doctor assigned only). Each transition's `handle()` re-checks the policy before delegating to the state class's `transitionTo*()` helper.
+- [x] Create the 4 custom `Transition` classes extending `Spatie\ModelStates\Transition`: `ConfirmAppointmentTransition` (rejects patient actor), `CompleteAppointmentTransition` (doctor assigned only), `CancelAppointmentTransition` (24h patient window applied later in `CancelAppointmentAction`), `MarkNoShowTransition` (doctor assigned only). Each transition's `handle()` re-checks the policy before delegating to the state class's `transitionTo*()` helper.
   - Files: `app/States/Transitions/ConfirmAppointmentTransition.php`, `app/States/Transitions/CompleteAppointmentTransition.php`, `app/States/Transitions/CancelAppointmentTransition.php`, `app/States/Transitions/MarkNoShowTransition.php`
   - Commit: `feat(state-machine): add 4 actor-aware transition classes`
   - Test gate: `php -r "require 'vendor/autoload.php'; echo class_exists('App\\States\\Transitions\\ConfirmAppointmentTransition');"`
 
-- [ ] **TDD: red** — Write `tests/Unit/States/AppointmentStateTest.php` with the 4 unit tests: (a) terminal states reject outgoing transitions; (b) `Pending → Confirmed` allowed when actor is the assigned doctor; (c) `Pending → Confirmed` rejected when actor is the patient (the "patient cannot self-confirm" scenario); (d) `Pending → Cancelled` allowed for patient/doctor/admin. Commit the test; it must fail.
+- [x] **TDD: red** — Write `tests/Unit/States/AppointmentStateTest.php` with the 4 unit tests: (a) terminal states reject outgoing transitions; (b) `Pending → Confirmed` allowed when actor is the assigned doctor; (c) `Pending → Confirmed` rejected when actor is the patient (the "patient cannot self-confirm" scenario); (d) `Pending → Cancelled` allowed for patient/doctor/admin. Commit the test; it must fail.
   - Files: `tests/Unit/States/AppointmentStateTest.php`
   - Commit: `test(state-machine): red — appointment state matrix (4 tests, fails)`
   - Test gate: `php artisan test --filter=AppointmentStateTest` exits non-zero
 
-- [ ] **TDD: green** — Wire the transitions on the model (typically `Appointment::state->transitionTo(newState, transition)` helpers) so the matrix passes. Test must pass.
+- [x] **TDD: green** — Wire the transitions on the model (typically `Appointment::state->transitionTo(newState, transition)` helpers) so the matrix passes. Test must pass.
   - Files: `app/Models/Appointment.php` (mod), `app/States/Appointment/Pending.php` (mod), `app/States/Appointment/Confirmed.php` (mod)
   - Commit: `feat(state-machine): green — appointment state matrix passes`
   - Test gate: `php artisan test --filter=AppointmentStateTest` exits 0
