@@ -1,5 +1,5 @@
 <?php
 
 test('sanity', function () {
-    expect(true)->toBeFalse();
+    expect(true)->toBeTrue();
 });
