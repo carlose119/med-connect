@@ -7,7 +7,6 @@ use App\Exceptions\Domain\PatientOverlapException;
 use App\Exceptions\Domain\SlotNotAvailableException;
 use App\Models\Appointment;
 use App\Models\DoctorSchedule;
-use App\Models\MedicalHistory;
 use App\Services\DoctorAvailabilityService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
@@ -43,6 +42,7 @@ class BookAppointmentAction
 {
     public function __construct(
         private readonly DoctorAvailabilityService $availability,
+        private readonly EnsureMedicalHistoryAction $ensureHistory,
     ) {}
 
     public function __invoke(
@@ -152,16 +152,11 @@ class BookAppointmentAction
             }
 
             // 5. Medical history: idempotent firstOrCreate on
-            //    (patient_id). Inside the same transaction so the
-            //    first-time patient always has a history committed with
-            //    the appointment. The helper action lands in the next
-            //    commit; for now we inline the firstOrCreate so this
-            //    commit's work unit (the booking pipeline) is
-            //    self-contained.
-            MedicalHistory::firstOrCreate(
-                ['patient_id' => $patientId],
-                ['opened_at' => now()],
-            );
+            //    (patient_id), via the EnsureMedicalHistoryAction
+            //    helper. Inside the same transaction so the first-time
+            //    patient always has a history committed with the
+            //    appointment.
+            ($this->ensureHistory)($patientId);
 
             return $appointment->refresh();
         });
