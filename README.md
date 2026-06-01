@@ -68,10 +68,57 @@ pending appointment):
 php artisan migrate:fresh --seed
 ```
 
-Roll back the 13 agenda-core migrations:
+Roll back the 16 agenda-core migrations (15 from PR 1+2 + Sanctum personal_access_tokens):
 
 ```bash
-php artisan migrate:rollback --step=13
+php artisan migrate:rollback --step=16
+```
+
+## RBAC, Sanctum, and the Appointment State Machine (PR 3)
+
+PR 3 adds three things on top of the PR 1+2 domain:
+
+- **Laravel Sanctum** for API token auth. The `User` model now uses
+  the `HasApiTokens` trait and the `personal_access_tokens` table is
+  published. Personal access tokens are issued in PR 4 (API routes).
+- **RBAC predicates on `User`**: `isAdmin()`, `isDoctor()`, `isPatient()`.
+  The `role` column is fillable; the `UserFactory` exposes `admin()`,
+  `doctor()`, `patient()` states.
+- **Appointment state machine** on top of `spatie/laravel-model-states` 2.13.
+  The `state` column is cast to the abstract state class
+  `App\States\Appointment\AppointmentState` (a PHP backed enum lives next
+  to it for reference / morph values). The five concrete states are
+  `Pending`, `Confirmed`, `Completed`, `Cancelled`, `NoShow`. Allowed
+  transitions:
+
+  | From      | To         | Actor                              | Transition class                       |
+  |-----------|------------|------------------------------------|----------------------------------------|
+  | Pending   | Confirmed  | assigned doctor                    | `App\States\Transitions\ConfirmAppointmentTransition`        |
+  | Pending   | Cancelled  | assigned patient (≥24h before) / assigned doctor / admin | `App\States\Transitions\CancelAppointmentTransition` |
+  | Confirmed | Completed  | assigned doctor                    | `App\States\Transitions\CompleteAppointmentTransition`       |
+  | Confirmed | Cancelled  | assigned patient (≥24h before) / assigned doctor / admin | `App\States\Transitions\CancelAppointmentTransition` |
+  | Confirmed | NoShow     | assigned doctor or admin           | `App\States\Transitions\MarkNoShowAppointmentTransition`     |
+
+  Custom `Transition` classes receive the actor as the second positional
+  argument to `$appointment->state->transitionTo(NextState::class, $user)`
+  and enforce both the actor identity and (for patient cancellations)
+  the 24h window. Domain exceptions thrown on rejection:
+
+  - `App\Exceptions\Domain\UnauthorizedActorException` (HTTP 403)
+  - `App\Exceptions\Domain\CancellationWindowViolationException` (HTTP 422)
+  - `App\Exceptions\Domain\InvalidStateTransitionException` (HTTP 422, raised when transitioning out of a terminal state)
+
+  Three policies (registered via `Gate::policy()` in `AppServiceProvider::boot()`)
+  gate the resource layer:
+
+  - `UserPolicy` — admin full; users view their own record.
+  - `PatientPolicy` — admin full; doctor view; patient view/update their own.
+  - `AppointmentPolicy` — admin full; assigned doctor view/update; assigned patient view and cancel (the 24h window is enforced by the transition, not the policy).
+
+Run the PR 3 test slice on its own:
+
+```bash
+vendor/bin/pest --filter='AppointmentStateTest|UserRolesTest|PolicyTest'
 ```
 
 ## Environment
