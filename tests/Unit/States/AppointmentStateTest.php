@@ -29,8 +29,8 @@ beforeEach(function () {
         ]);
 });
 
-it('casts the state column to the AppointmentState enum', function () {
-    expect($this->appointment->state)->toBeInstanceOf(\App\States\AppointmentState::class);
+it('casts the state column to the AppointmentState abstract class', function () {
+    expect($this->appointment->state)->toBeInstanceOf(\App\States\Appointment\AppointmentState::class);
 });
 
 it('starts a fresh appointment in the Pending state class', function () {

@@ -2,22 +2,27 @@
 
 namespace App\Models;
 
+use App\States\Appointment\AppointmentState as AppointmentStateClass;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\ModelStates\HasStates;
 
 /**
- * NOTE: The `state` column will be cast to the AppointmentState enum and the
- * `HasStates` trait wired up in PR 3 (Sanctum + RBAC + State Machine). For PR 2
- * the column is a plain string with a default of 'pending' — that is enough to
- * let the driver-aware unique index and the factories exercise the contract.
+ * Appointment aggregate. State lifecycle is modelled with
+ * spatie/laravel-model-states 2.13 on top of a PHP backed enum and 5
+ * concrete state classes; the cast `state => AppointmentState::class`
+ * is to the abstract state class (which has the `config()` map of
+ * allowed transitions). The DB column itself is still a string —
+ * spatie persists the morph name (e.g. 'pending') and resolves the
+ * concrete state class from the mapping in the abstract.
  */
 class Appointment extends Model
 {
     /** @use HasFactory<AppointmentFactory> */
-    use HasFactory;
+    use HasFactory, HasStates;
 
     protected $fillable = [
         'doctor_id',
@@ -34,6 +39,7 @@ class Appointment extends Model
         return [
             'start_time' => 'datetime',
             'end_time' => 'datetime',
+            'state' => AppointmentStateClass::class,
         ];
     }
 
