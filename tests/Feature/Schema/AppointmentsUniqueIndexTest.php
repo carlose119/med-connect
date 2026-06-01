@@ -48,7 +48,7 @@ it('rejects a second appointment with the same (doctor_id, start_time) for a non
         'patient_id' => $patientId,
         'start_time' => $start,
         'end_time' => $end,
-        'status' => 'pending',
+        'state' => 'pending',
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -61,7 +61,7 @@ it('rejects a second appointment with the same (doctor_id, start_time) for a non
             'patient_id' => $patientId,
             'start_time' => $start,
             'end_time' => $end,
-            'status' => 'pending',
+            'state' => 'pending',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
