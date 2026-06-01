@@ -54,9 +54,29 @@ Build production assets:
 npm run build
 ```
 
+## Database
+
+Local dev defaults to **MariaDB 10.11** via Laragon. `.env.example` already
+points at it (`DB_CONNECTION=mariadb`, host `127.0.0.1`, db `med_connect`).
+PostgreSQL remains supported at the application layer; switch
+`DB_CONNECTION=pgsql` in `.env` and create a `med_connect` database to use it.
+
+Seed the base data (one admin, one specialty, one doctor, one patient, one
+pending appointment):
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+Roll back the 13 agenda-core migrations:
+
+```bash
+php artisan migrate:rollback --step=13
+```
+
 ## Environment
 
 - PHP 8.4+ (the project pins to features available in 8.4 — e.g. property hooks, asymmetric visibility)
 - Composer 2.8+
 - Node 20.19+ (Vite 7 requires it) or 22.12+
-- A running PostgreSQL or MariaDB instance (greenfield: no DB required for the skeleton PR)
+- MariaDB 10.11+ or PostgreSQL 14+ for the agenda-core PR; greenfield before that needs no DB.
