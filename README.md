@@ -121,6 +121,95 @@ Run the PR 3 test slice on its own:
 vendor/bin/pest --filter='AppointmentStateTest|UserRolesTest|PolicyTest'
 ```
 
+## Agenda services and actions (PR 4)
+
+PR 4 lands the booking write path. The layered split from the design is:
+
+- **`App\Services\DoctorAvailabilityService`** — pure slot generator.
+  Signature: `slots(int $doctorId, CarbonInterface $date, ?string $tz = null): array`.
+  Reads the doctor's recurring rules and same-day overrides, subtracts
+  slots already consumed by non-cancelled appointments, filters slots
+  inside the 2h anticipación window, and returns
+  `array<int, array{start: CarbonImmutable, end: CarbonImmutable}>`
+  in the requested timezone (default = `config('app.timezone')`).
+  No DB writes, no `auth()`.
+
+- **`App\Actions\BookAppointmentAction`** — the orchestrator. Signature:
+  `__invoke(int $doctorId, CarbonInterface $start, int $patientId, ?string $notes = null): Appointment`.
+  Wraps everything in `DB::transaction`, takes `lockForUpdate()` on
+  the `doctor_schedules` rows for the slot's day-of-week, then runs
+  three guards in order:
+  1. **Slot exists and is not booked** → `DoctorAvailabilityService::slots()`
+  2. **2h anticipación** → `start >= now() + 2h`
+  3. **No patient overlap** → no non-cancelled appointment intersects `[start, end)`
+  The DB unique index `(doctor_id, start_time, cancelled_marker)` is
+  the second line of defense; if a race slips past `lockForUpdate()`,
+  the INSERT raises a `QueryException` and the action re-throws as
+  `SlotNotAvailableException`.
+
+- **`App\Actions\CancelAppointmentAction`** — full implementation
+  (was a stub in PR 3). Signature:
+  `__invoke(int $appointmentId, User $actor, ?string $reason = null): Appointment`.
+  Runs the 24h anticipación check for patient actors (doctors and
+  admins bypass), records `cancellation_reason`, and dispatches the
+  PR 3 `CancelAppointmentTransition` for the actor check + state change.
+
+- **`App\Actions\EnsureMedicalHistoryAction`** — idempotent helper.
+  Signature: `__invoke(int $patientId): MedicalHistory`. Returns the
+  patient's `MedicalHistory`, creating one if missing. Called from
+  `BookAppointmentAction` after the appointment is inserted so a
+  first-time patient always has a history committed with their first
+  appointment.
+
+Three new domain exceptions in `App\Exceptions\Domain\`, each
+implementing `httpStatus(): int`:
+
+| Exception                              | HTTP | Triggered by                                        |
+|----------------------------------------|------|-----------------------------------------------------|
+| `SlotNotAvailableException`            | 409  | Slot not in published list, or unique-index rejection |
+| `AnticipationWindowViolationException` | 422  | `start < now() + 2h`                                |
+| `PatientOverlapException`              | 422  | Patient has overlapping non-cancelled appointment    |
+
+`CancellationWindowViolationException` (422) is reused from PR 3 for
+the patient cancel path. The full list lives in
+`openspec/changes/agenda-core/specs/agenda/spec.md`.
+
+### Running the PR 4 tests
+
+Run the full suite (the PR 4 slice + everything from PR 1+2+3):
+
+```bash
+vendor/bin/pest
+```
+
+Run only the PR 4 service / exceptions / booking / cancel slice:
+
+```bash
+vendor/bin/pest --filter='DoctorAvailabilityServiceTest|DomainExceptionTest|BookAppointment|CancelAppointment|EnsureMedicalHistory'
+```
+
+Run the concurrent double-book persistence test (requires MariaDB/MySQL;
+skipped on SQLite):
+
+```bash
+DB_CONNECTION=mariadb vendor/bin/pest --filter=ConcurrentDoubleBookTest
+```
+
+### Smoke testing the booking pipeline on the dev MariaDB
+
+After `migrate:fresh --seed`, exercise the new actions from tinker:
+
+```php
+// Slot generation (the seeded doctor publishes Monday 09:00-12:00, 30-min slots)
+$svc = app(\App\Services\DoctorAvailabilityService::class);
+$svc->slots(1, now()->next(\Carbon\Carbon::MONDAY));
+
+// Booking (creates a pending appointment, idempotent on the medical history)
+$action = app(\App\Actions\BookAppointmentAction::class);
+$appt = $action(1, now()->addDays(8)->next(\Carbon\Carbon::MONDAY)->setTime(11, 0), 1);
+echo $appt->state::$name; // 'pending'
+```
+
 ## Environment
 
 - PHP 8.4+ (the project pins to features available in 8.4 — e.g. property hooks, asymmetric visibility)
