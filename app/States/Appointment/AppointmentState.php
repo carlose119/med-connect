@@ -7,6 +7,10 @@ use App\States\Appointment\Completed;
 use App\States\Appointment\Confirmed;
 use App\States\Appointment\NoShow;
 use App\States\Appointment\Pending;
+use App\States\Transitions\CancelAppointmentTransition;
+use App\States\Transitions\CompleteAppointmentTransition;
+use App\States\Transitions\ConfirmAppointmentTransition;
+use App\States\Transitions\MarkNoShowAppointmentTransition;
 use Spatie\ModelStates\Exceptions\TransitionNotFound;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
@@ -31,11 +35,11 @@ abstract class AppointmentState extends State
     {
         return parent::config()
             ->default(Pending::class)
-            ->allowTransition(Pending::class, Confirmed::class)
-            ->allowTransition(Pending::class, Cancelled::class)
-            ->allowTransition(Confirmed::class, Completed::class)
-            ->allowTransition(Confirmed::class, Cancelled::class)
-            ->allowTransition(Confirmed::class, NoShow::class);
+            ->allowTransition(Pending::class, Confirmed::class, ConfirmAppointmentTransition::class)
+            ->allowTransition(Pending::class, Cancelled::class, CancelAppointmentTransition::class)
+            ->allowTransition(Confirmed::class, Completed::class, CompleteAppointmentTransition::class)
+            ->allowTransition(Confirmed::class, Cancelled::class, CancelAppointmentTransition::class)
+            ->allowTransition(Confirmed::class, NoShow::class, MarkNoShowAppointmentTransition::class);
     }
 
     /**
