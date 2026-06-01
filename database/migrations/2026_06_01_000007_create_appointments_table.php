@@ -28,12 +28,19 @@ return new class extends Migration
         $driver = DB::connection()->getDriverName();
 
         if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            // MariaDB/MySQL: virtual generated column populated only when state = 'cancelled'.
-            // Cancelled rows carry id; non-cancelled rows carry NULL. NULLs are not unique-constrained.
+            // MariaDB/MySQL: generated column populated only when the row is NOT cancelled.
+            // Non-cancelled rows carry a constant marker (1); cancelled rows carry NULL.
+            // NULLs are not unique-constrained in MySQL/MariaDB, so multiple cancelled rows
+            // for the same (doctor_id, start_time) are allowed.
+            //
+            // Note: we CANNOT use the row's own `id` in the expression — MariaDB forbids
+            // referencing AUTO_INCREMENT columns in generated-column expressions. A constant
+            // marker is enough: the unique index is on (doctor_id, start_time, cancelled_marker),
+            // and we only need to discriminate cancelled vs non-cancelled.
             DB::statement(<<<'SQL'
                 ALTER TABLE appointments
-                ADD COLUMN cancelled_marker BIGINT UNSIGNED
-                GENERATED ALWAYS AS (CASE WHEN state = 'cancelled' THEN id ELSE NULL END) STORED,
+                ADD COLUMN cancelled_marker TINYINT UNSIGNED
+                GENERATED ALWAYS AS (CASE WHEN state = 'cancelled' THEN NULL ELSE 1 END) STORED,
                 ADD UNIQUE KEY uniq_doctor_start_not_cancelled (doctor_id, start_time, cancelled_marker)
             SQL);
         } else {
