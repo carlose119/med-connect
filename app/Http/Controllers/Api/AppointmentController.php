@@ -7,11 +7,13 @@ use App\Actions\CancelAppointmentAction;
 use App\Clinic\Timezone;
 use App\Http\Requests\Api\BookAppointmentRequest;
 use App\Http\Requests\Api\CancelAppointmentRequest;
+use App\Http\Requests\Api\ListAppointmentsRequest;
 use App\Http\Resources\Api\AppointmentResource;
 use App\Models\Appointment;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 
 /**
@@ -30,6 +32,57 @@ use Illuminate\Routing\Controller;
 class AppointmentController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * GET /api/appointments — paginated, role-scoped list.
+     *
+     * Role-scope rules (REQ-API-6 + design §"Auth + RBAC"):
+     *   - patient  → where('patient_id', $user->patient->id)
+     *   - doctor   → where('doctor_id', $user->doctor->id)
+     *   - admin    → no extra scope
+     *
+     * Optional filters (from/to/doctor_id/patient_id/state) are applied
+     * AFTER the role scope so the scope is always enforced.
+     * Order is by `start_time` ASC for stable pagination.
+     */
+    public function index(ListAppointmentsRequest $request): AnonymousResourceCollection
+    {
+        $user = $request->user();
+        $query = Appointment::query();
+
+        if ($user->isPatient() && $user->patient) {
+            $query->where('patient_id', $user->patient->id);
+        } elseif ($user->isDoctor() && $user->doctor) {
+            $query->where('doctor_id', $user->doctor->id);
+        }
+        // admin: no scope
+
+        $filters = $request->validated();
+
+        if (! empty($filters['from'])) {
+            $query->where('start_time', '>=', CarbonImmutable::parse($filters['from']));
+        }
+        if (! empty($filters['to'])) {
+            $query->where('start_time', '<=', CarbonImmutable::parse($filters['to']));
+        }
+        if (! empty($filters['doctor_id'])) {
+            $query->where('doctor_id', (int) $filters['doctor_id']);
+        }
+        if (! empty($filters['patient_id'])) {
+            $query->where('patient_id', (int) $filters['patient_id']);
+        }
+        if (! empty($filters['state'])) {
+            $query->where('state', $filters['state']);
+        }
+
+        $perPage = (int) ($filters['per_page'] ?? 20);
+
+        $paginator = $query
+            ->orderBy('start_time')
+            ->paginate($perPage);
+
+        return AppointmentResource::collection($paginator);
+    }
 
     public function store(BookAppointmentRequest $request, BookAppointmentAction $action): JsonResponse
     {
