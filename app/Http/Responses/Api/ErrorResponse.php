@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -63,6 +64,21 @@ class ErrorResponse
         }
 
         if ($e instanceof AuthenticationException) {
+            // REQ-API-1 scenario 3: a Sanctum token whose expires_at is
+            // in the past must be reported as TOKEN_EXPIRED (not
+            // UNAUTHENTICATED) so clients can distinguish "your session
+            // is over" from "you never sent a token". Inspect
+            // personal_access_tokens directly via Sanctum's
+            // PersonalAccessToken::findToken() (which does NOT go
+            // through the auth guard, so it does not re-throw).
+            $bearer = $request->bearerToken();
+            if (is_string($bearer) && $bearer !== '') {
+                $token = PersonalAccessToken::findToken($bearer);
+                if ($token !== null && $token->expires_at !== null && $token->expires_at->isPast()) {
+                    return [401, 'TOKEN_EXPIRED', 'Token has expired.', null];
+                }
+            }
+
             return [401, 'UNAUTHENTICATED', 'Authentication required.', null];
         }
 
