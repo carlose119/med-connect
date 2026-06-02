@@ -83,3 +83,43 @@ it('returns 200 with the appointment resource for the assigned doctor', function
         ->assertJsonPath('data.id', $appt->id)
         ->assertJsonPath('data.doctor_id', $doctor->id);
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (item 1 + item 2).
+ *
+ * Item 1: Doctor cannot read another doctor's appointment
+ *         (REQ-API-2 §2). The cross-coverage 403 path of
+ *         AppointmentPolicy@view is exercised by a second doctor
+ *         calling show on an appointment they are NOT assigned to.
+ *
+ * Item 2: Admin reads any appointment (REQ-API-2 §3). The admin
+ *         branch of AppointmentPolicy@view is exercised by an
+ *         admin user calling show on any appointment.
+ *
+ * The AppointmentPolicy@view impl (app/Policies/AppointmentPolicy.php
+ * lines 33-48) already implements both branches correctly; these
+ * tests are new and pass on first run. TDD exception documented at
+ * T-COV-2.
+ */
+it('returns 403 FORBIDDEN for a doctor from a different coverage', function (): void {
+    // A second doctor, completely unassigned to the original
+    // appointment. Their cross-coverage 403 path is the test target.
+    [, $otherDoctor, ] = $this->createDoctorWithToken();
+    $otherDoctorUser = $otherDoctor->user;
+
+    $response = $this->actingAs($otherDoctorUser, 'sanctum')
+        ->getJson("/api/appointments/{$this->appointment->id}");
+
+    $response->assertStatus(403)
+        ->assertJsonPath('error.code', 'FORBIDDEN');
+});
+
+it('returns 200 for an admin reading any appointment', function (): void {
+    $admin = \App\Models\User::factory()->admin()->create();
+
+    $response = $this->actingAs($admin, 'sanctum')
+        ->getJson("/api/appointments/{$this->appointment->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.id', $this->appointment->id);
+});
