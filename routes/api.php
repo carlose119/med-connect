@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MedicalHistoryController;
@@ -45,5 +46,6 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/patients/{patient}', [PatientController::class, 'show']);
     Route::get('/medical-histories/{medical_history}', [MedicalHistoryController::class, 'show']);
     Route::get('/prescriptions', [PrescriptionController::class, 'index']);
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });
 
