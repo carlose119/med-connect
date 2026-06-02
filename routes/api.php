@@ -47,6 +47,10 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     // canonical /api/auth/me (T-API-45) and retires this one (T-API-46).
     Route::get('/me', [MeController::class, 'show']);
 
+    // PR 4 — agenda-http — Auth surface (logout). The /api/auth/me
+    // and /api/auth/login routes land in T-API-41 and T-API-45.
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+
     // PR 2 — agenda-http — Mutations.
     // The 16 read endpoints land in PR 3.
     Route::get('/appointments', [AppointmentController::class, 'index']);
