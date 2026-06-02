@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MeController;
+use App\Http\Controllers\Api\MedicalHistoryController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\SpecialtyController;
 use App\Http\Middleware\ResolveTimezone;
@@ -41,5 +42,6 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/doctors/{doctor}/slots', [DoctorController::class, 'slots']);
     Route::get('/specialties', [SpecialtyController::class, 'index']);
     Route::get('/patients/{patient}', [PatientController::class, 'show']);
+    Route::get('/medical-histories/{medical_history}', [MedicalHistoryController::class, 'show']);
 });
 
