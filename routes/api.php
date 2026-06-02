@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MedicalHistoryController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PrescriptionController;
 use App\Http\Controllers\Api\SpecialtyController;
 use App\Http\Middleware\ResolveTimezone;
 use Illuminate\Support\Facades\Route;
@@ -43,5 +44,6 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/specialties', [SpecialtyController::class, 'index']);
     Route::get('/patients/{patient}', [PatientController::class, 'show']);
     Route::get('/medical-histories/{medical_history}', [MedicalHistoryController::class, 'show']);
+    Route::get('/prescriptions', [PrescriptionController::class, 'index']);
 });
 
