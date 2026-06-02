@@ -15,5 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if (! $request->is('api/*')) {
+                return null; // web routes keep the default HTML handling
+            }
+
+            return \App\Http\Responses\Api\ErrorResponse::fromException($e, $request);
+        });
     })->create();

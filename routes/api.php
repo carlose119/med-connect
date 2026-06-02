@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ResolveTimezone;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,14 +10,17 @@ use Illuminate\Support\Facades\Route;
 |
 | This file is loaded by bootstrap/app.php via the `withRouting(api: ...)`
 | call. All routes declared here are auto-prefixed with `api` and run
-| under the `api` middleware group. PR 1 (agenda-http) adds the
-| `auth:sanctum` + `ResolveTimezone` middleware inside the group below;
-| the route stubs land in subsequent tasks (T-API-6 / T-API-7).
+| under the `api` middleware group. The group below gates the public
+| surface behind auth:sanctum (so the 401 envelope is rendered for
+| every authenticated endpoint) and runs ResolveTimezone BEFORE
+| auth:sanctum so the 401 response is also rendered in the requested
+| TZ (design risk N7).
 |
 */
 
-Route::middleware([])->prefix('api')->group(function (): void {
-    // Placeholder — the real route group (with auth:sanctum + ResolveTimezone)
-    // lands in T-API-6 and T-API-7. This file must exist and be registered
-    // before T-API-5's ExceptionMappingTest can mount its throw route.
+Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->prefix('api')->group(function (): void {
+    // PR 3 / PR 2 add the 16 public + mutation endpoints here.
+    // PR 1 lands a minimal /api/me placeholder so the auth surface is
+    // testable end-to-end (see AuthSanctumTest in T-API-7).
 });
+
