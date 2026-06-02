@@ -148,3 +148,51 @@ it('respects per_page with the LengthAwarePaginator envelope', function (): void
     expect($data)->toBeArray();
     expect(count($data))->toBe(2);
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (items 7, 8, 10).
+ *
+ * Item 7 (REQ-API-6 §3): per_page above the maximum (100) is
+ * rejected with 422 VALIDATION_ERROR + field-level error under
+ * error.details.per_page. The `per_page` rule is in
+ * app/Http/Requests/Api/ListAppointmentsRequest.php line 46
+ * (`min:1, max:100`); the ValidationException arm of
+ * ErrorResponse::resolve() (lines 62-64) maps to 422 VALIDATION_ERROR
+ * with details keyed by field.
+ *
+ * Item 8 (REQ-API-6 §4): per_page below 1 (i.e. 0) is rejected
+ * with 422 VALIDATION_ERROR. Same rule + same error mapping.
+ *
+ * Item 10 (REQ-API-7 §7): unauthenticated GET /api/appointments
+ * returns 401 UNAUTHENTICATED. The `auth:sanctum` middleware on
+ * /api/* (registered in routes/api.php) rejects without a bearer
+ * token; the AuthenticationException arm of ErrorResponse::resolve()
+ * (lines 66-83) maps to 401 UNAUTHENTICATED.
+ *
+ * All three are "tests pass on first run" scenarios — the impl is
+ * already correct. TDD exception documented at T-COV-12.
+ */
+it('rejects per_page above the maximum with 422 VALIDATION_ERROR', function (): void {
+    $response = $this->actingAs($this->patientAUser, 'sanctum')
+        ->getJson('/api/appointments?per_page=200');         // max is 100
+
+    $response->assertStatus(422)
+        ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+        ->assertJsonPath('error.details.per_page', fn ($details) => is_array($details));
+});
+
+it('rejects per_page below 1 with 422 VALIDATION_ERROR', function (): void {
+    $response = $this->actingAs($this->patientAUser, 'sanctum')
+        ->getJson('/api/appointments?per_page=0');
+
+    $response->assertStatus(422)
+        ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+        ->assertJsonPath('error.details.per_page', fn ($details) => is_array($details));
+});
+
+it('returns 401 UNAUTHENTICATED for an unauthenticated request', function (): void {
+    $response = $this->getJson('/api/appointments');
+
+    $response->assertStatus(401)
+        ->assertJsonPath('error.code', 'UNAUTHENTICATED');
+});
