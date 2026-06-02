@@ -3,9 +3,10 @@
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesDoctors;
 use Tests\Support\CreatesPatients;
 
-uses(RefreshDatabase::class, CreatesPatients::class);
+uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
 
 /**
  * PR 3 — agenda-http — GET /api/audit-logs (REQ-API-6 + design §5
@@ -22,7 +23,7 @@ uses(RefreshDatabase::class, CreatesPatients::class);
 
 beforeEach(function (): void {
     $this->admin = User::factory()->admin()->create();
-    [, $this->doctorUser, ] = \Tests\Support\CreatesDoctors::createDoctorWithToken();
+    [$this->doctorUser, , ] = $this->createDoctorWithToken();
     [$this->patientUser, , ] = $this->createPatientWithToken();
 
     // Seed 5 audit logs with different action verbs.
