@@ -16,13 +16,26 @@ use Illuminate\Routing\Controller;
  * HTTP surface for the doctors endpoint group.
  *
  * `index()`  → GET    /api/doctors              (Eloquent, paginated)
+ * `show()`   → GET    /api/doctors/{id}         (single resource)
  * `slots()`  → GET    /api/doctors/{id}/slots   (DoctorAvailabilityService)
  *
- * Both methods wrap the agenda-core domain: doctors are public
+ * All three methods wrap the agenda-core domain: doctors are public
  * (Sanctum auth required, but no per-row authorization).
  */
 class DoctorController extends Controller
 {
+    /**
+     * GET /api/doctors/{doctor} — single doctor resource.
+     *
+     * Eager-loads `user` and `specialty` so DoctorResource can render
+     * the sub-objects in O(1) queries (no N+1). Doctors are public:
+     * Sanctum auth is the only gate (no per-row authorization needed).
+     */
+    public function show(Doctor $doctor): DoctorResource
+    {
+        return DoctorResource::make($doctor->load(['user', 'specialty']));
+    }
+
     /**
      * GET /api/doctors — paginated list, filterable by specialty_id.
      *
