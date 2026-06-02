@@ -23,8 +23,20 @@ class PatientPolicy
 
     public function view(User $actor, Patient $patient): bool
     {
-        if ($actor->isAdmin() || $actor->isDoctor()) {
+        if ($actor->isAdmin()) {
             return true;
+        }
+
+        if ($actor->isDoctor()) {
+            // Spec: doctors can only view patients they share an
+            // appointment with (REQ-API-2 §5). The check is a single
+            // exists() query (no N+1) and mirrors the
+            // AppointmentPolicy@view pattern. The `?->` nullsafe
+            // covers the edge case where a doctor User has no
+            // Doctor profile (defensive; should not happen).
+            return $actor->doctor?->appointments()
+                ->where('patient_id', $patient->id)
+                ->exists() ?? false;
         }
 
         if ($actor->isPatient()) {
