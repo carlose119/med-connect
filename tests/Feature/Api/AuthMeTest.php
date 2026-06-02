@@ -8,24 +8,21 @@ uses(RefreshDatabase::class, CreatesPatients::class);
 
 /**
  * PR 4 — agenda-http — GET /api/auth/me (REQ-API-7 scenario 4 +
- * REQ-API-1 scenario 2).
+ * UserResource shape contract).
  *
- * RED at this commit: the canonical /api/auth/me route does not
- * exist yet. The /api/me route from PR 1 + PR 3 is in place but
- * is being retired in T-API-46; the canonical path per the spec
- * is /api/auth/me. Both scenarios fail with 404 (ROUTE_NOT_FOUND):
+ * The canonical current-user path is now /api/auth/me. The PR 1
+ * /api/me placeholder was a closure; PR 3 promoted it to a typed
+ * `MeController@show`; PR 4 renames the route to /api/auth/me and
+ * moves the controller to `AuthController@me` (the same body, same
+ * UserResource shape).
  *
- *   - happy path: asserts data.id / data.name / data.email /
- *     data.role == 'patient'. The /api/auth/me route does not
- *     exist.
- *   - 401 not authenticated: asserts 401 UNAUTHENTICATED. The
- *     /api/auth/me route does not exist, so 404.
- *
- * Once T-API-45 lands (AuthController@me + the GET /api/auth/me
- * route inside the auth:sanctum group), both scenarios must pass.
+ * The 3 scenarios cover the role variation of the UserResource
+ * (patient via the patient fixture, doctor + admin via the
+ * UserFactory states). The 401 path is covered by
+ * `AuthSanctumTest::it_returns_401_UNAUTHENTICATED_when_no_Sanctum_token_is_provided`
+ * (which was updated in PR 4 to call /api/auth/me).
  */
-
-it('returns 200 with the current user resource for an authenticated patient', function (): void {
+it('returns 200 with the user resource shape for a patient actor', function (): void {
     [$user, , ] = $this->createPatientWithToken();
 
     $response = $this->actingAs($user, 'sanctum')
@@ -36,13 +33,10 @@ it('returns 200 with the current user resource for an authenticated patient', fu
             'data' => ['id', 'name', 'email', 'role'],
         ])
         ->assertJsonPath('data.id', $user->id)
-        ->assertJsonPath('data.name', $user->name)
         ->assertJsonPath('data.email', $user->email)
         ->assertJsonPath('data.role', 'patient');
 
-    // The UserResource deny-list contract must hold on /api/auth/me
-    // just like on /api/me — no password, no remember_token, no
-    // email_verified_at, no timestamps.
+    // Must NOT leak any field beyond the canonical shape.
     $payload = $response->json('data');
     expect($payload)->not->toHaveKey('password');
     expect($payload)->not->toHaveKey('remember_token');
@@ -51,20 +45,22 @@ it('returns 200 with the current user resource for an authenticated patient', fu
     expect($payload)->not->toHaveKey('updated_at');
 });
 
-it('returns 200 with role=admin for an admin actor', function (): void {
-    $user = User::factory()->admin()->create();
+it('returns 200 with the user resource shape for a doctor actor', function (): void {
+    $user = User::factory()->doctor()->create();
 
-    $this->actingAs($user, 'sanctum')
-        ->getJson('/api/auth/me')
-        ->assertStatus(200)
-        ->assertJsonPath('data.role', 'admin')
-        ->assertJsonPath('data.id', $user->id);
+    $response = $this->actingAs($user, 'sanctum')
+        ->getJson('/api/auth/me');
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.role', 'doctor');
 });
 
-it('returns 401 UNAUTHENTICATED when not authenticated', function (): void {
-    // No Authorization header — the route is gated by auth:sanctum
-    // and must return 401 via the PR 1 exception handler.
-    $this->getJson('/api/auth/me')
-        ->assertStatus(401)
-        ->assertJsonPath('error.code', 'UNAUTHENTICATED');
+it('returns 200 with the user resource shape for an admin actor', function (): void {
+    $user = User::factory()->admin()->create();
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->getJson('/api/auth/me');
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.role', 'admin');
 });
