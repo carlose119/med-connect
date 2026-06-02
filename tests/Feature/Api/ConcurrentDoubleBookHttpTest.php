@@ -95,3 +95,67 @@ it('two concurrent POST /api/appointments for the same slot return 201 + 409 on 
         ->count();
     expect($count)->toBe(1);
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (item 12, REQ-CONC-HTTP-1 §2).
+ *
+ * The losing 409 response includes the conflicting appointment id
+ * under error.details.conflicting_appointment_id. The HTTP client
+ * (mobile or web) uses the id to fetch the winning appointment
+ * and surface "this slot is taken" UX without a second round-trip.
+ *
+ * RED at this commit: ErrorResponse::resolve() for DomainException
+ * (app/Http/Responses/Api/ErrorResponse.php lines 111-118) returns
+ * null details, so error.details is missing entirely from the
+ * payload (the if ($details !== null) guard on line 42 of
+ * ErrorResponse::fromException drops the field). The assertion on
+ * error.details.conflicting_appointment_id will fail.
+ *
+ * The GREEN commit (T-COV-16) extends SlotNotAvailableException
+ * with a `withConflict(int $id)` static factory + a getter, makes
+ * BookAppointmentAction call withConflict() when the slot-lookup
+ * guard fires, and adds the conflicting_appointment_id field to
+ * ErrorResponse::resolve() for SlotNotAvailableException specifically.
+ */
+it('includes conflicting_appointment_id in the 409 details', function (): void {
+    $driver = Config::get('database.default');
+
+    if (! in_array($driver, ['mariadb', 'mysql'], true)) {
+        $this->markTestSkipped(sprintf(
+            'conflicting_appointment_id race test requires a real DB driver (mariadb/mysql); current driver is %s. '
+            .'Run with DB_CONNECTION=mariadb to exercise this scenario.',
+            $driver,
+        ));
+    }
+
+    [, $doctor, ] = $this->createDoctorWithToken(
+        CarbonImmutable::now()->addDays(5),
+    );
+
+    $targetDate = CarbonImmutable::now()->addDays(5)->setTime(10, 0);
+
+    [$firstUser, , ] = $this->createPatientWithToken();
+    [, $secondPatient, ] = $this->createPatientWithToken();
+
+    $firstResponse = $this->actingAs($firstUser, 'sanctum')
+        ->postJson('/api/appointments', [
+            'doctor_id' => $doctor->id,
+            'start_time' => $targetDate->toIso8601String(),
+        ]);
+    $firstResponse->assertStatus(201);
+
+    $winningId = $firstResponse->json('data.id');
+    expect($winningId)->toBeInt();
+
+    $secondResponse = $this->actingAs($secondPatient->user, 'sanctum')
+        ->postJson('/api/appointments', [
+            'doctor_id' => $doctor->id,
+            'start_time' => $targetDate->toIso8601String(),
+        ]);
+
+    // 409 + error.code = SLOT_NOT_AVAILABLE (existing contract) + the
+    // new field under error.details.conflicting_appointment_id.
+    $secondResponse->assertStatus(409)
+        ->assertJsonPath('error.code', 'SLOT_NOT_AVAILABLE')
+        ->assertJsonPath('error.details.conflicting_appointment_id', $winningId);
+});
