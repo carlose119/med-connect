@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\AppointmentTransitionController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MeController;
@@ -38,6 +39,11 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
+
+    // PR 3 — agenda-http — State transitions.
+    Route::post('/appointments/{appointment}/transitions/confirm', [AppointmentTransitionController::class, 'confirm']);
+    Route::post('/appointments/{appointment}/transitions/complete', [AppointmentTransitionController::class, 'complete']);
+    Route::post('/appointments/{appointment}/transitions/no-show', [AppointmentTransitionController::class, 'markNoShow']);
 
     // PR 3 — agenda-http — Doctor directory.
     Route::get('/doctors', [DoctorController::class, 'index']);
