@@ -48,3 +48,29 @@ it('returns 401 with the standard envelope when not authenticated', function ():
     $response->assertStatus(401)
         ->assertJsonPath('error.code', 'UNAUTHENTICATED');
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (item 11, REQ-API-7 §13).
+ *
+ * GET /api/doctors/{id} for a missing doctor returns 404 NOT_FOUND
+ * (NOT ROUTE_NOT_FOUND — the route exists, only the resource is
+ * missing).
+ *
+ * The ErrorResponse::resolve() arms for ModelNotFoundException
+ * (lines 89-91) and the Laravel-prepareException recovery arm for
+ * NotFoundHttpException whose previous is ModelNotFoundException
+ * (lines 99-101) both return [404, 'NOT_FOUND', ...]. The route
+ * /api/doctors/{doctor} exists, so Laravel never throws the bare
+ * NotFoundHttpException — the ModelNotFoundException from
+ * route-model binding wins.
+ *
+ * RED is "test does not exist yet". The new scenario passes on
+ * first run. TDD exception documented at T-COV-14.
+ */
+it('returns 404 NOT_FOUND for a missing doctor', function (): void {
+    $response = $this->actingAs($this->patient, 'sanctum')
+        ->getJson('/api/doctors/999999');
+
+    $response->assertStatus(404)
+        ->assertJsonPath('error.code', 'NOT_FOUND');
+});
