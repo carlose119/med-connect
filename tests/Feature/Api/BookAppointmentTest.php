@@ -141,3 +141,83 @@ it('returns 422 ANTICIPATION_WINDOW_VIOLATION when start_time is inside the 2h w
     $response->assertStatus(422)
         ->assertJsonPath('error.code', 'ANTICIPATION_WINDOW_VIOLATION');
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (item 6 + item 9, both
+ * REQ-API-5 §3 and REQ-API-7 §5).
+ *
+ * Item 6 (PASSES on first run): The controller's store() method
+ * (app/Http/Controllers/Api/AppointmentController.php lines 116-119)
+ * already does the `tz->toUtc(...)` conversion. The new scenario
+ * pins the contract: the wire body is interpreted in the resolved
+ * TZ, but the stored column is UTC.
+ *
+ * Item 9 (FAILS at this commit, will be fixed at T-COV-10): The
+ * current BookAppointmentRequest::authorize()
+ * (app/Http/Requests/Api/BookAppointmentRequest.php lines 31-43)
+ * returns true for admin + doctor + patient. The spec (REQ-API-7
+ * §5) says only patients can book via the API. The new scenarios
+ * assert 403 FORBIDDEN for admin and doctor actors.
+ */
+it('interprets the write body in the resolved TZ and stores UTC', function (): void {
+    [$user, $patient, ] = $this->createPatientWithToken();
+
+    // Wire body: 07:00 AR (-03:00) on the target day, ?tz=AR.
+    // The default schedule is 09:00-12:00 in app.timezone (UTC);
+    // 07:00 AR == 10:00 UTC, which is inside the published window.
+    // The conversion path being pinned: wire body in AR → stored
+    // value in UTC. (We picked 07:00 AR instead of 10:00 AR so the
+    // slot-lookup guard passes — 10:00 AR == 13:00 UTC, which is
+    // outside the default 09:00-12:00 UTC window.)
+    $localStart = $this->targetDay->setTimezone('America/Argentina/Buenos_Aires')->setTime(7, 0);
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson('/api/appointments?tz=America/Argentina/Buenos_Aires', [
+            'doctor_id' => $this->doctor->id,
+            'start_time' => $localStart->toIso8601String(),
+        ]);
+
+    $response->assertStatus(201);
+
+    // The wire response must echo the local time with -03:00.
+    $response->assertJsonPath('data.start_time', $localStart->toIso8601String());
+
+    // The DB column must hold the UTC equivalent (07:00 AR == 10:00 UTC).
+    $appointment = Appointment::query()
+        ->where('doctor_id', $this->doctor->id)
+        ->where('patient_id', $patient->id)
+        ->latest('id')
+        ->first();
+    expect($appointment)->not->toBeNull();
+
+    $rawStart = $appointment->getAttributes()['start_time'];
+    expect($rawStart)->toBe($localStart->copy()->setTimezone('UTC')->toDateTimeString());
+});
+
+it('returns 403 FORBIDDEN for a non-patient actor (admin)', function (): void {
+    $admin = \App\Models\User::factory()->admin()->create();
+
+    $response = $this->actingAs($admin, 'sanctum')
+        ->postJson('/api/appointments', [
+            'doctor_id' => $this->doctor->id,
+            'start_time' => $this->targetDay->toIso8601String(),
+        ]);
+
+    $response->assertStatus(403)
+        ->assertJsonPath('error.code', 'FORBIDDEN');
+});
+
+it('returns 403 FORBIDDEN for a non-patient actor (doctor)', function (): void {
+    // A SECOND doctor (not the doctor whose slot we're booking)
+    // so the actor is unambiguously a doctor, not the patient.
+    [, $otherDoctor, ] = $this->createDoctorWithToken();
+
+    $response = $this->actingAs($otherDoctor->user, 'sanctum')
+        ->postJson('/api/appointments', [
+            'doctor_id' => $this->doctor->id,
+            'start_time' => $this->targetDay->toIso8601String(),
+        ]);
+
+    $response->assertStatus(403)
+        ->assertJsonPath('error.code', 'FORBIDDEN');
+});
