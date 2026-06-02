@@ -132,3 +132,21 @@ it('renders an unmapped exception as 500 with code INTERNAL_ERROR', function ():
         ->assertStatus(500)
         ->assertJsonPath('error.code', 'INTERNAL_ERROR');
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (item 4). REQ-API-4 §10:
+ * NotFoundHttpException surfaces as 404 ROUTE_NOT_FOUND (route 404,
+ * NOT resource 404).
+ *
+ * The ErrorResponse::resolve() arm for NotFoundHttpException
+ * (app/Http/Responses/Api/ErrorResponse.php lines 107-109) already
+ * returns [404, 'ROUTE_NOT_FOUND', ...]. RED is "test does not exist
+ * yet" — the new scenario passes on first run. TDD exception
+ * documented at T-COV-6.
+ */
+it('returns 404 ROUTE_NOT_FOUND for an unknown route', function (): void {
+    $this->actingAs($this->user, 'sanctum')
+        ->getJson('/api/this-route-does-not-exist')
+        ->assertStatus(404)
+        ->assertJsonPath('error.code', 'ROUTE_NOT_FOUND');
+});
