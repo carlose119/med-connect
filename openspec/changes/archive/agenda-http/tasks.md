@@ -468,6 +468,127 @@ The design surfaces 7 open questions. The tasks above adopt the recommended reso
 
 ---
 
+## PR 4 — Auth Surface (login + logout + me + TOKEN_EXPIRED)
+
+**Why this PR exists**: `sdd-verify` for PR 3 returned FAIL with 2 CRITICAL findings — the 3 auth endpoints (`POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`) listed in `proposal.md:37`, `design.md:185,189-191`, `spec.md:197-214` (REQ-API-7) and the `README.md:463-465` curl example were never implemented. The implementation has `GET /api/me` (a PR 1 placeholder) instead of `/api/auth/me`. Additionally, the `TOKEN_EXPIRED` error code required by `spec.md:9,21-24` (REQ-API-1 scenario #3) is missing — `ErrorResponse::resolve()` always returns `UNAUTHENTICATED` for any `AuthenticationException`.
+
+**Goal**: close the 2 CRITICAL spec gaps. After PR 4 merges, `sdd-verify` should return `pass-with-warnings` (or `pass`) and `sdd-archive` can run.
+
+**Scope**:
+- 3 new endpoints (`POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`) — spec REQ-API-7, 4 scenarios total
+- 1 new error code (`TOKEN_EXPIRED`) — spec REQ-API-1 scenario #3
+- Retire the undocumented `/api/me` placeholder + `MeController@show` (move the logic to `AuthController@me` to satisfy the spec path)
+- Keep the existing `UserResource` (its shape `{id, name, email, role}` already matches both `REQ-API-7` login + me responses)
+
+**Out of scope** (deferred to a future change):
+- `?mine=true` query param (still an open question)
+- Throttling / rate-limiting on `/api/auth/login` (Laravel's `ThrottleRequests` middleware; can be added in a follow-up)
+- Refresh tokens / token rotation (Sanctum v1 doesn't support; out of scope for v1)
+- `personal_access_tokens.expires_at` migration (PR 4 uses a test-time `expires_at` override on the token model via `Carbon::setTestNow` + `withExpiresAt` on `createToken`)
+
+**Tasks (10 total — 4 RED+GREEN pairs + 1 STRUCTURAL + 1 VERIFY)**:
+
+- [ ] **T-API-40 [RED]** — `test(api): POST /api/auth/login returns 200 with user and token + 401 with bad creds` (REQ-API-7 scenarios 1 + 2)
+  - File: `tests/Feature/Api/AuthLoginTest.php` (NEW, ~45 LOC, 2 scenarios)
+  - Scenario A: `it('returns 200 with {data.user, data.token} for valid credentials')` — uses `CreatesPatients` + `actingAs` pattern; asserts `data.user.id`, `data.user.email`, `data.user.role === 'patient'`, and `data.token` is a non-empty string (NOT a specific value, because Sanctum tokens are random)
+  - Scenario B: `it('returns 401 UNAUTHENTICATED for bad credentials')` — sends valid email + wrong password; asserts `error.code = 'UNAUTHENTICATED'`
+
+- [ ] **T-API-41 [GREEN]** — `feat(api): AuthController@login + LoginRequest + the route (no auth guard)`
+  - Files:
+    - `app/Http/Controllers/Api/AuthController.php` (NEW, ~30 LOC: `public function login(LoginRequest $request): JsonResponse` — calls `Auth::guard('web')->attempt($credentials)`, on success returns `new JsonResponse(['data' => ['user' => new UserResource($user), 'token' => $user->createToken($deviceName)->plainTextToken]])`, on failure throws `AuthenticationException` (handled by `ErrorResponse` as 401 UNAUTHENTICATED))
+    - `app/Http/Requests/Api/LoginRequest.php` (NEW, ~20 LOC: `authorize(): true`, rules: `email` required|email, `password` required|string, `device_name` nullable|string|max:64)
+    - `routes/api.php` (MOD, add `Route::post('/auth/login', [AuthController::class, 'login'])` OUTSIDE the auth:sanctum group but INSIDE the ResolveTimezone group so the 422 INVALID_TIMEZONE envelope is also rendered for login)
+  - Commit: `feat(api): AuthController@login + LoginRequest (green)`
+  - Dependency: T-API-40
+
+- [ ] **T-API-42 [RED]** — `test(api): POST /api/auth/logout returns 204 and revokes the token` (REQ-API-7 scenario 3)
+  - File: `tests/Feature/Api/AuthLogoutTest.php` (NEW, ~35 LOC, 1 scenario + 1 helper)
+  - Scenario: `it('returns 204 and deletes the current access token from personal_access_tokens')` — uses `CreatesPatients`, mints a token, calls logout, asserts status 204 + asserts `DB::table('personal_access_tokens')->count() === 0`
+  - Helper: `it('returns 401 UNAUTHENTICATED when not authenticated')` (covered by the global exception handler tests already, but worth a 1-line assert here for symmetry)
+
+- [ ] **T-API-43 [GREEN]** — `feat(api): AuthController@logout + the route`
+  - Files:
+    - `app/Http/Controllers/Api/AuthController.php` (MOD, add `public function logout(Request $request): \Illuminate\Http\Response` that calls `$request->user()->currentAccessToken()->delete()` and returns `response()->noContent()`)
+    - `routes/api.php` (MOD, add `Route::post('/auth/logout', [AuthController::class, 'logout'])` INSIDE the auth:sanctum group, immediately after the `/auth/me` route placeholder)
+  - Commit: `feat(api): AuthController@logout (green)`
+  - Dependency: T-API-42
+
+- [ ] **T-API-44 [RED]** — `test(api): GET /api/auth/me returns 200 with the current user + 401 when not authenticated` (REQ-API-7 scenario 4 + REQ-API-1 scenario 2)
+  - File: `tests/Feature/Api/AuthMeTest.php` (NEW, ~40 LOC, 2 scenarios)
+  - Scenario A: `it('returns 200 with the current user resource for an authenticated user')` — uses `CreatesPatients`, asserts `data.id`, `data.name`, `data.email`, `data.role === 'patient'`
+  - Scenario B: `it('returns 401 UNAUTHENTICATED when not authenticated')` — asserts `error.code = 'UNAUTHENTICATED'`
+
+- [ ] **T-API-45 [GREEN]** — `feat(api): AuthController@me + the route`
+  - Files:
+    - `app/Http/Controllers/Api/AuthController.php` (MOD, add `public function me(Request $request): UserResource` — returns `new UserResource($request->user())`, mirroring the old `MeController@show` body)
+    - `routes/api.php` (MOD, add `Route::get('/auth/me', [AuthController::class, 'me'])` INSIDE the auth:sanctum group)
+  - Commit: `feat(api): AuthController@me (green)`
+  - Dependency: T-API-44
+
+- [ ] **T-API-46 [STRUCTURAL]** — `chore(refactor): retire /api/me placeholder + MeController; update affected tests`
+  - Why: the implementation has `GET /api/me` pointing to `MeController@show`, but the spec says `GET /api/auth/me` and the new `AuthController@me` covers the same logic. The old path was a PR 1 placeholder. For v1 (no external clients) the cleanest move is to rename, not alias.
+  - Files:
+    - `app/Http/Controllers/Api/MeController.php` (DELETE)
+    - `routes/api.php` (MOD, remove `use App\Http\Controllers\Api\MeController;` + remove `Route::get('/me', [MeController::class, 'show']);`)
+    - `tests/Feature/Api/MeTest.php` (RENAME → `AuthMeTest.php` + replace 3 `/api/me` paths with `/api/auth/me` + update the doc comment to reference the new path)
+    - `tests/Feature/Api/AuthSanctumTest.php` (MOD, replace 2 `/api/me` calls with `/api/auth/me` so the `?tz=` validation tests exercise the canonical route)
+  - Commit: `chore(refactor): retire /api/me placeholder, route now lives at /api/auth/me`
+  - Dependency: T-API-45 (the new route must exist before the old one is removed, otherwise the AuthSanctumTest updates break)
+
+- [ ] **T-API-47 [RED]** — `test(api): expired Sanctum token returns 401 TOKEN_EXPIRED` (REQ-API-1 scenario 3)
+  - File: `tests/Feature/Api/AuthExpiredTokenTest.php` (NEW, ~35 LOC, 1 scenario)
+  - Approach: `Carbon::setTestNow($someMoment)` → create a Sanctum token via `createToken('test')` (default 0 expiry, no `expires_at`) → set `Carbon::setTestNow($someLaterMoment)` past whatever threshold the middleware uses → call `/api/auth/me` with the bearer token → assert `error.code = 'TOKEN_EXPIRED'`
+  - **Caveat**: Sanctum's `HasApiTokens::createToken()` does NOT set `expires_at` by default. The cleanest way to test "expired" is to manually update `personal_access_tokens.expires_at` to a past timestamp via `DB::table('personal_access_tokens')->update(['expires_at' => now()->subDay()])`. Then call the endpoint and assert the new code path.
+  - Scenario: `it('returns 401 TOKEN_EXPIRED for a Sanctum token whose expires_at is in the past')`
+
+- [ ] **T-API-48 [GREEN]** — `feat(api): ErrorResponse resolves TOKEN_EXPIRED for expired Sanctum tokens`
+  - File: `app/Http/Responses/Api/ErrorResponse.php` (MOD, the `AuthenticationException` branch — currently returns `'UNAUTHENTICATED'` — now checks: if the request has an `Authorization: Bearer ...` header AND the token can be resolved from `personal_access_tokens` AND its `expires_at` is in the past → return `[401, 'TOKEN_EXPIRED', 'Token has expired.', null]`; otherwise return the existing `[401, 'UNAUTHENTICATED', 'Authentication required.', null]`)
+  - Implementation hint: use `Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken())` to inspect the token without going through the auth guard (which would also throw).
+  - Commit: `feat(api): ErrorResponse distinguishes TOKEN_EXPIRED from UNAUTHENTICATED (green)`
+  - Dependency: T-API-47
+
+- [ ] **T-API-49 [VERIFICATION]** — `chore(test): verify PR 4 test suite + migrate:fresh --seed + route:list gates on MariaDB`
+  - Run `vendor/bin/pest` → all pass on SQLite (expected: 113+3 → 121+3 = +8 new tests: 2 login + 1 logout + 2 me + 1 expired = 6, plus the 2 moved MeTest→AuthMeTest scenarios = 8 net)
+  - Run `DB_CONNECTION=mariadb php artisan migrate:fresh --env=testing` → no errors (no schema changes; transport-only)
+  - Run `DB_CONNECTION=mariadb vendor/bin/pest` → all pass including the driver-aware `ConcurrentDoubleBookHttpTest`
+  - Run `php artisan route:list --path=api` → 18 routes (was 16: +3 auth, -1 /api/me = net +2 = 18). Verify each new route is registered with the correct middleware
+  - Run `php artisan tinker --execute="echo App\Models\User::first()?->createToken('manual-test')->plainTextToken;"` → mints a valid token (sanity check the auth flow end-to-end)
+  - Commit: `chore(test): verify PR 4 test suite + route:list gates on MariaDB`
+  - Dependency: T-API-48
+
+### PR 4 expected commit log (bottom-to-top, 10 commits)
+
+```
+<hash> chore(test): verify PR 4 test suite + route:list gates on MariaDB
+<hash> feat(api): ErrorResponse distinguishes TOKEN_EXPIRED from UNAUTHENTICATED (green)
+<hash> test(api): expired Sanctum token returns 401 TOKEN_EXPIRED (red)
+<hash> chore(refactor): retire /api/me placeholder, route now lives at /api/auth/me
+<hash> feat(api): AuthController@me (green)
+<hash> test(api): GET /api/auth/me returns 200 with the current user (red)
+<hash> feat(api): AuthController@logout (green)
+<hash> test(api): POST /api/auth/logout returns 204 and revokes the token (red)
+<hash> feat(api): AuthController@login + LoginRequest (green)
+<hash> test(api): POST /api/auth/login returns 200 with user and token (red)
+```
+
+### PR 4 verification (must all pass)
+
+1. `vendor/bin/pest` on SQLite → 121 passed + 3 skipped (+8 vs PR 3 baseline of 113+3)
+2. `DB_CONNECTION=mariadb vendor/bin/pest` → 124 passed (+8 vs PR 3 baseline of 116)
+3. `php artisan route:list --path=api` → 18 routes (16 PR 3 baseline + 3 auth - 1 /api/me = +2 net; the spec's 19 includes the /api/me alias which we're NOT implementing)
+4. `php -r "require 'vendor/autoload.php'; ..."` manual `curl` smoke test: login → use token → me → logout → me again returns 401 UNAUTHENTICATED (or TOKEN_EXPIRED if we manipulate the token)
+5. `git log --oneline -10` shows the expected commit shape with red→green pair order preserved
+6. `README.md` curl example for `POST /api/auth/login` now works (returns 200 instead of 404)
+
+### PR 4 known risks to verify
+
+- **R-PR4-1**: The `TOKEN_EXPIRED` detection logic depends on `personal_access_tokens.expires_at` being set. The test uses `DB::table(...)->update(['expires_at' => ...])` to set it manually. Verify that the production code path (no `expires_at` set) still returns `UNAUTHENTICATED` (not `TOKEN_EXPIRED` for valid tokens).
+- **R-PR4-2**: Retiring `/api/me` + `MeController` is a breaking change for any client that may have used it. For v1 (no external clients yet) this is safe. Verify no internal Laravel code references `MeController` (e.g. service providers, other tests).
+- **R-PR4-3**: `AuthController@login` uses `Auth::guard('web')->attempt($credentials)`. The `web` guard must have the `App\Models\User` provider configured. Verify the default `config/auth.php` providers[users] is wired to `App\Models\User::class` (Laravel default — but worth a sanity check).
+- **R-PR4-4**: `UserResource` is used by both `/api/auth/login` and `/api/auth/me`. Verify the resource shape is consistent across both responses (the login wraps it as `data.user`, the me returns it directly as `data`).
+
+---
+
 ## Cross-PR dependency graph
 
 ```
@@ -497,16 +618,17 @@ Within PR 3, the sub-groups are independent of each other (3A: reads, 3B: transi
 
 ## Aggregate metrics
 
-| Metric | P1 | P2 | P3 | Total |
-|---|---|---|---|---|
-| Tasks | 8 | 7 | 24 | **39** |
-| RED commits | 1 | 2 | 12 | **15** |
-| GREEN commits | 1 | 2 | 12 | **15** |
-| STRUCTURAL commits | 4 | 1 | 1 | **6** |
-| VERIFY commits | 1 | 1 | 1 | **3** |
-| RED+GREEN single commits | 1 | 0 | 0 | **1** |
-| LOC estimate (hand-written) | 330–380 | 330–380 | 330–380 | **~1,065** |
-| New files (app/) | 5 | 4 | 14 | **23** |
-| New files (tests/) | 3 | 3 | 13 | **19** |
-| Modified files | 2 | 2 | 2 | **6** |
-| TDD exceptions documented | 3 (T-API-3, T-API-7, T-API-14) | 0 | 0 | **3** |
+| Metric | P1 | P2 | P3 | P4 (post-verify follow-up) | Total |
+|---|---|---|---|---|---|
+| Tasks | 8 | 7 | 24 | 10 | **49** |
+| RED commits | 1 | 2 | 12 | 4 | **19** |
+| GREEN commits | 1 | 2 | 12 | 4 | **19** |
+| STRUCTURAL commits | 4 | 1 | 1 | 1 | **7** |
+| VERIFY commits | 1 | 1 | 1 | 1 | **4** |
+| RED+GREEN single commits | 1 | 0 | 0 | 0 | **1** |
+| LOC estimate (hand-written) | 330–380 | 330–380 | 330–380 | 200–250 | **~1,290** |
+| New files (app/) | 5 | 4 | 14 | 2 | **25** |
+| New files (tests/) | 3 | 3 | 13 | 4 | **23** |
+| Modified files | 2 | 2 | 2 | 4 | **10** |
+| Deleted files | 0 | 0 | 0 | 1 (MeController) | **1** |
+| TDD exceptions documented | 3 (T-API-3, T-API-7, T-API-14) | 0 | 0 | 0 | **3** |
