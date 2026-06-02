@@ -348,3 +348,168 @@ checklist above), then `sdd-archive` to sync the delta specs into
 - Composer 2.8+
 - Node 20.19+ (Vite 7 requires it) or 22.12+
 - MariaDB 10.11+ or PostgreSQL 14+ for the agenda-core PR; greenfield before that needs no DB.
+
+---
+
+## REST API (agenda-http)
+
+A JSON HTTP API is exposed under `/api/*` for the patient web portal
+and a future mobile app. All endpoints (except `POST /api/auth/login`)
+require a Sanctum bearer token. The transport is locked at the end
+of PR 3 of the `agenda-http` change — the 16 public endpoints + 3
+auth endpoints = 19 routes total.
+
+### Endpoint table
+
+| #  | Method | Path                                                | Auth               | Description                                              |
+|----|--------|-----------------------------------------------------|--------------------|----------------------------------------------------------|
+| 1  | POST   | `/api/auth/login`                                   | none               | Exchange email + password for a Sanctum bearer token.     |
+| 2  | POST   | `/api/auth/logout`                                  | any                | Revoke the current access token. Returns 204.             |
+| 3  | GET    | `/api/me`                                           | any                | Current user (id, name, email, role).                    |
+| 4  | POST   | `/api/appointments`                                 | patient            | Book a new appointment. Returns 201.                      |
+| 5  | DELETE | `/api/appointments/{appointment}`                   | owner (patient/doctor) / admin | Cancel an appointment. Returns 200.        |
+| 6  | GET    | `/api/appointments`                                 | any (scoped)       | Paginated list, role-scoped.                             |
+| 7  | GET    | `/api/appointments/{appointment}`                   | any (gated)        | Single appointment detail.                               |
+| 8  | POST   | `/api/appointments/{id}/transitions/confirm`        | assigned doctor    | pending → confirmed.                                     |
+| 9  | POST   | `/api/appointments/{id}/transitions/complete`       | assigned doctor    | confirmed → completed.                                   |
+| 10 | POST   | `/api/appointments/{id}/transitions/no-show`        | assigned doctor / admin | confirmed → no_show.                                |
+| 11 | GET    | `/api/doctors`                                      | any                | Paginated list of active doctors.                        |
+| 12 | GET    | `/api/doctors/{id}/slots`                           | any                | Available slots for a date.                              |
+| 13 | GET    | `/api/specialties`                                  | any                | Active specialties (not paginated).                      |
+| 14 | GET    | `/api/patients/{id}`                                | admin / doctor / self | Patient profile.                                       |
+| 15 | GET    | `/api/medical-histories/{id}`                       | self / doctor with appointment / admin | Medical history.                              |
+| 16 | GET    | `/api/prescriptions`                                | any (scoped)       | Paginated list, role-scoped.                             |
+| 17 | GET    | `/api/audit-logs`                                   | admin              | Paginated list, admin-only.                              |
+
+### Auth flow
+
+```bash
+# 1. Mint a token (one-off, server-side, e.g. via tinker or after a web login)
+php artisan tinker --execute="echo \App\Models\User::factory()->create(['role'=>'patient'])->createToken('mobile')->plainTextToken;"
+
+# 2. Use the token in every subsequent request
+TOKEN="<paste the plaintext from step 1>"
+curl -H "Authorization: Bearer $TOKEN" \
+     -H "Accept: application/json" \
+     http://127.0.0.1:8000/api/me
+```
+
+The token is a `Laravel\Sanctum\HasApiTokens` `plainTextToken`
+(unprefixed) and must be passed verbatim as the `Authorization`
+header. `Accept: application/json` is required for Laravel to
+render the standard JSON error envelope on auth failure (without
+it, an unauthenticated request redirects to the web login page).
+
+### Timezone strategy
+
+- **Storage**: every datetime column in the DB is UTC.
+- **Wire format**: every datetime on the wire is ISO 8601 with the
+  resolved offset, formatted by the per-request `Timezone` value
+  object via `App\Http\Resources\Api\*Resource`.
+- **Resolution chain** (per request, in `ResolveTimezone` middleware):
+  1. `?tz=` query param — validated against
+     `timezone_identifiers_list()`. Invalid → 422 `INVALID_TIMEZONE`.
+  2. Falls back to `config('clinic.timezone')` — defaults to
+     `America/Argentina/Buenos_Aires`.
+
+```bash
+# Default TZ (clinic TZ)
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/api/me
+
+# Override to New York
+curl -H "Authorization: Bearer $TOKEN" \
+     "http://127.0.0.1:8000/api/me?tz=America/New_York"
+```
+
+### Error envelope
+
+All error responses share the same shape:
+
+```json
+{
+  "error": {
+    "code": "SLOT_NOT_AVAILABLE",
+    "message": "The requested slot at 2026-06-15T10:00:00+00:00 is not in the published schedule or is already booked.",
+    "details": { "conflicting_appointment_id": 42 }
+  }
+}
+```
+
+The 6 domain exceptions + 4 Laravel exceptions are mapped to a
+canonical HTTP status + `error.code` pair (see
+`openspec/changes/agenda-http/design.md` §6). The full list:
+
+| Exception                                 | HTTP | `error.code`                       |
+|-------------------------------------------|------|-------------------------------------|
+| `SlotNotAvailableException`               | 409  | `SLOT_NOT_AVAILABLE`                |
+| `AnticipationWindowViolationException`    | 422  | `ANTICIPATION_WINDOW_VIOLATION`     |
+| `PatientOverlapException`                 | 422  | `PATIENT_OVERLAP`                   |
+| `UnauthorizedActorException`              | 403  | `UNAUTHORIZED_ACTOR`                |
+| `CancellationWindowViolationException`    | 422  | `CANCELLATION_WINDOW_VIOLATION`     |
+| `InvalidStateTransitionException`         | 422  | `INVALID_STATE_TRANSITION`          |
+| `InvalidTimezoneException`                | 422  | `INVALID_TIMEZONE`                  |
+| `ValidationException`                     | 422  | `VALIDATION_ERROR`                  |
+| `AuthenticationException`                 | 401  | `UNAUTHENTICATED`                   |
+| `AuthorizationException`                  | 403  | `FORBIDDEN`                         |
+| `ModelNotFoundException`                  | 404  | `NOT_FOUND`                         |
+| any other exception                       | 500  | `INTERNAL_ERROR`                    |
+
+### Curl examples
+
+```bash
+TOKEN="<paste from tinker>"
+
+# Login (mints a token)
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"email":"patient@med-connect.local","password":"password"}' \
+     http://127.0.0.1:8000/api/auth/login
+
+# List my appointments
+curl -H "Authorization: Bearer $TOKEN" \
+     http://127.0.0.1:8000/api/appointments
+
+# Book an appointment (10:00 local on a day with a published schedule)
+curl -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"doctor_id\":1,\"start_time\":\"2026-06-15T10:00:00-03:00\",\"notes\":\"Routine checkup\"}" \
+     http://127.0.0.1:8000/api/appointments
+
+# Get the published slots for a doctor
+curl -H "Authorization: Bearer $TOKEN" \
+     "http://127.0.0.1:8000/api/doctors/1/slots?date=2026-06-15"
+
+# Transition an appointment to confirmed
+curl -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     http://127.0.0.1:8000/api/appointments/42/transitions/confirm
+
+# Cancel an appointment
+curl -X DELETE \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"reason":"Patient unavailable"}' \
+     http://127.0.0.1:8000/api/appointments/42
+```
+
+### Role / Ownership matrix
+
+| Resource                 | Patient                      | Doctor                       | Admin |
+|--------------------------|------------------------------|------------------------------|-------|
+| `GET /api/appointments`  | own only                     | own only                     | all   |
+| `POST /api/appointments` | self-service                 | (any patient)                | (any patient) |
+| `GET /api/patients/{id}` | self only                    | any                          | all   |
+| `GET /api/prescriptions` | own only                     | own issued only              | all   |
+| `GET /api/audit-logs`    | 403 FORBIDDEN                | 403 FORBIDDEN                | all   |
+| Transitions              | cancel (24h window) / view   | confirm / complete / no-show | all transitions |
+
+### PR 3 test slice
+
+PR 3 of `agenda-http` adds **24 new feature tests** (well within
+the 400-line review budget) covering the 10 read endpoints, the 3
+transition endpoints, and the `GET /api/me` resource shape. Run
+just the PR 3 slice:
+
+```bash
+vendor/bin/pest --filter='ListAppointmentsTest|ShowAppointmentTest|ListDoctorsTest|ListSlotsTest|MeTest|ListSpecialtiesTest|ShowPatientTest|ShowMedicalHistoryTest|ListPrescriptionsTest|ListAuditLogsTest|TransitionAppointmentTest'
+```
