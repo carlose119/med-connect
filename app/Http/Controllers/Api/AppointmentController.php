@@ -84,6 +84,20 @@ class AppointmentController extends Controller
         return AppointmentResource::collection($paginator);
     }
 
+    /**
+     * GET /api/appointments/{appointment} — single appointment detail.
+     *
+     * The authz gate is the AppointmentPolicy@view (admin, assigned
+     * doctor, or assigned patient). A non-owner patient gets
+     * 403 FORBIDDEN via the PR 1 exception handler.
+     */
+    public function show(Appointment $appointment): AppointmentResource
+    {
+        $this->authorize('view', $appointment);
+
+        return new AppointmentResource($appointment);
+    }
+
     public function store(BookAppointmentRequest $request, BookAppointmentAction $action): JsonResponse
     {
         $validated = $request->validated();

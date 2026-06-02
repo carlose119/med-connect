@@ -30,6 +30,7 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     // PR 2 — agenda-http — Mutations.
     // The 16 read endpoints land in PR 3.
     Route::get('/appointments', [AppointmentController::class, 'index']);
+    Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
 });
