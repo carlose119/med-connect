@@ -3,6 +3,7 @@
 namespace App\Http\Responses\Api;
 
 use App\Exceptions\Domain\DomainException;
+use App\Exceptions\Domain\SlotNotAvailableException;
 use App\Exceptions\InvalidTimezoneException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -109,6 +110,28 @@ class ErrorResponse
         }
 
         if ($e instanceof DomainException) {
+            // REQ-CONC-HTTP-1 §2: the losing 409 response for a
+            // slot collision carries the winning appointment's id
+            // under error.details.conflicting_appointment_id. The
+            // exception carries the id (set by the action's
+            // withConflict() named constructor); the envelope
+            // surfaces it. The non-SlotNotAvailable DomainException
+            // paths keep `null` details (the `if ($details !== null)`
+            // guard in fromException drops the key).
+            if ($e instanceof SlotNotAvailableException) {
+                $existingId = $e->getExistingAppointmentId();
+                $details = $existingId !== null
+                    ? ['conflicting_appointment_id' => $existingId]
+                    : null;
+
+                return [
+                    $e->httpStatus(),
+                    self::classNameToCode($e),
+                    $e->getMessage(),
+                    $details,
+                ];
+            }
+
             return [
                 $e->httpStatus(),
                 self::classNameToCode($e),

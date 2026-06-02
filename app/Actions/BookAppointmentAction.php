@@ -71,7 +71,11 @@ class BookAppointmentAction
             // 1st guard: slot must be in the published list. The
             //    service's slot list already excludes booked slots and
             //    past slots, so a positive match means the slot is
-            //    free and ≥ 2h in the future.
+            //    free and ≥ 2h in the future. If the slot is NOT in
+            //    the published list, look up the blocking row in
+            //    `appointments` to surface its id in the 409 envelope
+            //    under error.details.conflicting_appointment_id (the
+            //    client uses it to fetch the winning appointment).
             $startUtc = $start->copy()->setTimezone('UTC');
             $availableSlots = $this->availability->slots($doctorId, $start);
             $matches = collect($availableSlots)->contains(
@@ -79,10 +83,25 @@ class BookAppointmentAction
             );
 
             if (! $matches) {
-                throw new SlotNotAvailableException(sprintf(
+                $existing = Appointment::query()
+                    ->where('doctor_id', $doctorId)
+                    ->where('start_time', $startUtc)
+                    ->where('state', '!=', 'cancelled')
+                    ->first(['id']);
+
+                $message = sprintf(
                     'The requested slot at %s is not in the published schedule or is already booked.',
                     $start->toIso8601String(),
-                ));
+                );
+
+                if ($existing !== null) {
+                    throw SlotNotAvailableException::withConflict(
+                        $existing->id,
+                        $message,
+                    );
+                }
+
+                throw new SlotNotAvailableException($message);
             }
 
             // 2nd guard: 2h anticipación. The service's filter
