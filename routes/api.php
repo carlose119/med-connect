@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\DoctorController;
 use App\Http\Middleware\ResolveTimezone;
 use Illuminate\Support\Facades\Route;
 
@@ -33,5 +34,8 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
+
+    // PR 3 — agenda-http — Doctor directory.
+    Route::get('/doctors', [DoctorController::class, 'index']);
 });
 
