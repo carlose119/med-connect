@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AppointmentTransitionController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MedicalHistoryController;
@@ -27,10 +28,23 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// PR 4 — agenda-http — Public auth surface (login only). Runs
+// ResolveTimezone so the 422 INVALID_TIMEZONE envelope is also
+// rendered for an invalid ?tz= on the login route (N7), but NOT
+// auth:sanctum (login is the credential exchange, not a bearer
+// request). The 401 UNAUTHENTICATED envelope for bad creds is
+// handled by the PR 1 exception handler when AuthController@login
+// throws AuthenticationException.
+Route::middleware([ResolveTimezone::class])->group(function (): void {
+    Route::post('/auth/login', [AuthController::class, 'login']);
+});
+
 Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): void {
     // PR 3 — agenda-http — /me. Replaces the PR 1 placeholder
     // (auth()->user() direct serialization) with a typed controller
     // + UserResource. The middleware group still gates the route.
+    // NOTE: this path is the PR 1 placeholder. PR 4 adds the
+    // canonical /api/auth/me (T-API-45) and retires this one (T-API-46).
     Route::get('/me', [MeController::class, 'show']);
 
     // PR 2 — agenda-http — Mutations.
