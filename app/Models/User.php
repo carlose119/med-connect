@@ -9,6 +9,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -55,5 +56,25 @@ class User extends Authenticatable implements FilamentUser
             'doctor' => $this->isDoctor(),
             default => false,
         };
+    }
+
+    /**
+     * Patient profile attached to this user (when role=patient). The
+     * patient table holds the medical profile; the user table holds
+     * the auth surface. The relation is `HasOne` because one user
+     * owns at most one patient profile.
+     */
+    public function patient(): HasOne
+    {
+        return $this->hasOne(Patient::class);
+    }
+
+    /**
+     * Doctor profile attached to this user (when role=doctor). Same
+     * shape as `patient()` — one user owns at most one doctor profile.
+     */
+    public function doctor(): HasOne
+    {
+        return $this->hasOne(Doctor::class);
     }
 }

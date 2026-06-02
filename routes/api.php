@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Middleware\ResolveTimezone;
 use Illuminate\Support\Facades\Route;
 
@@ -25,5 +26,10 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     // Note: the `api` prefix is auto-applied by withRouting(api: ...) in
     // bootstrap/app.php — do NOT add prefix('api') here.
     Route::get('/me', fn () => response()->json(['data' => auth()->user()]));
+
+    // PR 2 — agenda-http — Mutations.
+    // The 16 read endpoints land in PR 3.
+    Route::post('/appointments', [AppointmentController::class, 'store']);
+    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
 });
 

@@ -29,11 +29,13 @@ pest()->extend(TestCase::class)
 | tests/Feature/Api/**. Each test gets `createPatientWithToken()` and
 | `createDoctorWithToken()` as $this-> methods without an explicit
 | `uses(...)` line in the test file. The PR 2 book + cancel tests
-| consume these fixtures end-to-end.
+| consume these fixtures end-to-end. The `->use(...)` call adds the
+| trait to the existing TestCase binding (no second `extend()` so
+| Pest doesn't complain about a duplicate TestCase).
 |
 */
 
-pest()->extend(TestCase::class)
+pest()
     ->use(CreatesPatients::class, CreatesDoctors::class)
     ->in('Feature/Api');
 

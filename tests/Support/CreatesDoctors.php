@@ -3,12 +3,10 @@
 namespace Tests\Support;
 
 use App\Models\Doctor;
-use App\Models\Patient;
 use App\Models\Specialty;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Factories\DoctorScheduleFactory;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Test fixture: builds a doctor (User + Doctor profile + a published
@@ -42,8 +40,9 @@ trait CreatesDoctors
         $scheduleDay ??= CarbonImmutable::now();
         $dayOfWeek = (int) $scheduleDay->dayOfWeekIso;
 
-        // Build the schedule with a known slot at 10:00 local. Use the
-        // factory's "for($doctor)" so the doctor_id is wired up.
+        // Build the schedule with a 09:00-12:00 window in 30-minute
+        // slots. The trait guarantees the slot at 10:00 (used by
+        // BookAppointmentTest) exists in the doctor's published list.
         DoctorScheduleFactory::new()
             ->for($doctor)
             ->create([
@@ -56,12 +55,7 @@ trait CreatesDoctors
 
         $token = $user->createToken('test')->plainTextToken;
 
-        // Suppress unused-import warning when the trait is the only
-        // consumer of `DB` (it pulls in `Database\Factories\DoctorScheduleFactory`
-        // via the `use` statement and resolves the FK through the
-        // factory, so no direct DB call is needed here).
-        unset(DB::class);
-
         return [$user, $doctor, $token];
     }
 }
+

@@ -107,9 +107,30 @@ it('returns 409 SLOT_NOT_AVAILABLE when the slot is already booked', function ()
 it('returns 422 ANTICIPATION_WINDOW_VIOLATION when start_time is inside the 2h window', function (): void {
     [$user, , ] = $this->createPatientWithToken();
 
-    // 1h in the future. The 2h anticipation check must reject it
-    // even though the slot exists in the published list.
-    $nearFuture = CarbonImmutable::now()->addHour()->setMinute(0)->setSecond(0);
+    // The action's 2nd guard is defense-in-depth: the slot service
+    // already filters out slots inside the 2h window, so a request
+    // posting "now+1h" is normally caught by the 1st guard with 409
+    // (slot not in the published list). To exercise the 2nd guard
+    // through the HTTP layer we bind a fake service that returns
+    // the requested slot even though it is inside the 2h window —
+    // same pattern as tests/Feature/Agenda/BookAppointmentFailureTest.
+    $nearFuture = CarbonImmutable::now()->addMinutes(90)->startOfMinute();
+    $nearFutureUtc = $nearFuture->copy()->setTimezone('UTC');
+
+    $fakeService = new class($nearFutureUtc) extends \App\Services\DoctorAvailabilityService
+    {
+        public function __construct(private readonly \Carbon\CarbonInterface $slot) {}
+
+        public function slots(int $doctorId, \Carbon\CarbonInterface $date, ?string $tz = null): array
+        {
+            return [[
+                'start' => $this->slot->copy()->toImmutable(),
+                'end' => $this->slot->copy()->addMinutes(30)->toImmutable(),
+            ]];
+        }
+    };
+
+    app()->instance(\App\Services\DoctorAvailabilityService::class, $fakeService);
 
     $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/appointments', [
