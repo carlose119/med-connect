@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\BookAppointmentAction;
+use App\Actions\CancelAppointmentAction;
 use App\Clinic\Timezone;
 use App\Http\Requests\Api\BookAppointmentRequest;
+use App\Http\Requests\Api\CancelAppointmentRequest;
 use App\Http\Resources\Api\AppointmentResource;
+use App\Models\Appointment;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 
@@ -25,6 +29,8 @@ use Illuminate\Routing\Controller;
  */
 class AppointmentController extends Controller
 {
+    use AuthorizesRequests;
+
     public function store(BookAppointmentRequest $request, BookAppointmentAction $action): JsonResponse
     {
         $validated = $request->validated();
@@ -56,4 +62,22 @@ class AppointmentController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
+    public function cancel(CancelAppointmentRequest $request, Appointment $appointment): JsonResponse
+    {
+        // Policy gate: admin, assigned doctor, or assigned patient.
+        $this->authorize('cancel', $appointment);
+
+        $actor = $request->user();
+        app(CancelAppointmentAction::class)(
+            $appointment->id,
+            $actor,
+            $request->validated('reason'),
+        );
+
+        return (new AppointmentResource($appointment->refresh()))
+            ->response()
+            ->setStatusCode(200);
+    }
 }
+
