@@ -210,6 +210,138 @@ $appt = $action(1, now()->addDays(8)->next(\Carbon\Carbon::MONDAY)->setTime(11, 
 echo $appt->state::$name; // 'pending'
 ```
 
+## Filament v5 panels (PR 5)
+
+PR 5 wires the admin and doctor back-offices on top of the PR 1–4 domain.
+Two `PanelProvider` classes mount two distinct Filament panels; both
+share the same `User` model and the same `canAccessPanel(Panel $panel)`
+method that consults the role predicates from PR 3.
+
+| Path           | Panel id  | Role required | `UserResource` / `SpecialtyResource` mounted? | Login              |
+|----------------|-----------|---------------|------------------------------------------------|--------------------|
+| `/admin`       | `admin`   | `admin`       | yes (full CRUD on users + specialties)         | Filament built-in  |
+| `/doctor`      | `doctor`  | `doctor`      | no (empty dashboard for v1)                    | Filament built-in  |
+
+### What lives on the admin panel
+
+- **Dashboard** — Filament default + `AccountWidget` + `FilamentInfoWidget`.
+- **`App\Filament\Resources\Users\UserResource`** — list / create / edit users.
+  The create form has `name`, `email`, `password` (required on create,
+  hidden on edit), `role` (`admin | doctor | patient`), and **conditional**
+  `specialty_id` and `license_number` that only appear when
+  `role === 'doctor'`. The CreateUser page wraps the user + doctor
+  inserts in a single `DB::transaction` so a half-created doctor never
+  leaks an orphan user account.
+- **`App\Filament\Resources\Specialties\SpecialtyResource`** — minimal
+  list / create / edit for the `specialties` lookup. The slug is
+  auto-generated from the name on create; `is_active` toggles the row
+  out of the doctor-creation `Select`.
+
+### What lives on the doctor panel
+
+- **Dashboard** only. The doctor "view my appointments" UI is a future
+  change (`agenda-doctor-ui`); for PR 5 the doctor just logs in and
+  lands on an empty dashboard. Login still runs through the same
+  `canAccessPanel` gate so non-doctors get a 403.
+
+### How `canAccessPanel` is wired
+
+`App\Models\User` implements `Filament\Models\Contracts\FilamentUser`.
+The method is a `match` on `$panel->getId()`:
+
+```php
+public function canAccessPanel(Panel $panel): bool
+{
+    return match ($panel->getId()) {
+        'admin'  => $this->isAdmin(),
+        'doctor' => $this->isDoctor(),
+        default  => false,
+    };
+}
+```
+
+The four scenarios from `users-roles/spec.md` § Filament Panel Access
+are covered by `tests/Feature/Auth/FilamentPanelAccessTest.php`
+(4 passing cases on both SQLite in-memory and MariaDB 10.11).
+
+### Visiting the panels locally
+
+After `php artisan migrate:fresh --seed`, the seeder creates one
+admin user. Boot the dev server and open both logins:
+
+```bash
+# 1) Make sure the assets are built (one-shot)
+npm install
+npm run build
+
+# 2) Boot Laravel
+php artisan serve --host=127.0.0.1 --port=8000
+
+# 3) Open in a browser
+#    http://127.0.0.1:8000/admin   →  log in as the seeded admin
+#    http://127.0.0.1:8000/doctor  →  log in as a user with role=doctor
+#                                    (the seeded `doctor@med-connect.local`
+#                                    is the doctor, NOT the admin)
+```
+
+Expected behaviour:
+
+- Admin → `/admin` → 200, dashboard with the Users + Specialties nav.
+- Doctor → `/admin` → 403 (denied by `canAccessPanel`).
+- Admin → `/doctor` → 403 (denied by `canAccessPanel`).
+- Doctor → `/doctor` → 200, empty dashboard.
+- Patient → both panels → 403.
+- Unauthenticated → both panels → redirected to `/admin/login` (or `/doctor/login`).
+
+If the admin creates a new user with `role = doctor` and fills the
+specialty + license number, the User row and the Doctor row land in
+the same transaction. The new doctor can then log into `/doctor`
+immediately with the password the admin typed in.
+
+### Run the PR 5 test slice
+
+```bash
+# All 42 cases on SQLite (default), 44 on MariaDB
+vendor/bin/pest
+
+# Just the panel-access matrix
+vendor/bin/pest --filter=FilamentPanelAccessTest
+```
+
+### Known PR 5 caveats
+
+- **Vite 7 + Node 20.16** prints a non-blocking warning that Node 20.19+
+  is required; the build still succeeds. Upgrade Node at your leisure.
+- **`Specialty::where('is_active', true)`** in `UserForm` requires the
+  PR 2 migration to have actually been applied. If you see "no
+  specialties in the dropdown" after seeding, run
+  `php artisan migrate:fresh --seed` to repopulate.
+- **Filament v5 third-party plugins** (e.g. `filament/shield`) are NOT
+  installed. The `canAccessPanel` gate is sufficient for PR 5; richer
+  per-resource authorization lands in a future `rbac-advanced` change.
+
+## Status — agenda-core
+
+**Feature-complete pending `sdd-verify`.** All five PRs of the
+chained split are landed on `feat/filament-panels` (the final branch
+in the chain) and the test suite is green:
+
+| PR  | Scope                                                          | Branch              | Review |
+|-----|----------------------------------------------------------------|---------------------|--------|
+| 1   | Skeleton (`composer create-project` + `.atl/` + `openspec/`)   | (merged to main)    | 0 LOC  |
+| 2   | 13 migrations + 12 Eloquent models + 13 factories + seeder     | (merged to main)    | ~1500  |
+| 3   | Sanctum + RBAC + state machine + 3 Gate policies               | (merged to main)    | ~600   |
+| 4   | 1 service + 3 actions + 3 domain exceptions                   | (merged to main)    | ~1230  |
+| 5   | Filament v5 panels + `UserResource` + `SpecialtyResource`      | `feat/filament-panels` | ~700 (excl. `composer.lock` / fonts) |
+
+The 6 proposal smoke tests + the 4 panel-access scenarios from
+`users-roles/spec.md` are all passing. Next step is
+`sdd-verify` (a separate agent audits the red→green pairs in
+`git log`, the test count, the route map, and the manual-visit
+checklist above), then `sdd-archive` to sync the delta specs into
+`openspec/specs/` and move the change folder to
+`openspec/changes/archive/`.
+
 ## Environment
 
 - PHP 8.4+ (the project pins to features available in 8.4 — e.g. property hooks, asymmetric visibility)
