@@ -18,9 +18,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->prefix('api')->group(function (): void {
-    // PR 3 / PR 2 add the 16 public + mutation endpoints here.
-    // PR 1 lands a minimal /api/me placeholder so the auth surface is
-    // testable end-to-end (see AuthSanctumTest in T-API-7).
+Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): void {
+    // Minimal /api/me placeholder so the auth surface is testable
+    // end-to-end (see AuthSanctumTest). PR 3 swaps this for the
+    // full MeController that wraps a UserResource.
+    // Note: the `api` prefix is auto-applied by withRouting(api: ...) in
+    // bootstrap/app.php — do NOT add prefix('api') here.
+    Route::get('/me', fn () => response()->json(['data' => auth()->user()]));
 });
 
