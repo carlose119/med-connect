@@ -30,16 +30,14 @@ class BookAppointmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // The AppointmentPolicy::create gate accepts admin + doctor.
-        // Patients are auto-allowed for self-booking; the controller
-        // resolves the patient_id from $user->patient->id.
+        // REQ-API-7 §5: only patients book via the API. Admin and
+        // doctor actors are rejected with 403 FORBIDDEN at the HTTP
+        // layer. The patient_id field requirement in rules() is
+        // kept as defense-in-depth (a request that somehow bypassed
+        // authorize() would still 422 on the missing patient_id).
         $user = $this->user();
 
-        if ($user === null) {
-            return false;
-        }
-
-        return $user->isAdmin() || $user->isDoctor() || $user->isPatient();
+        return $user?->isPatient() ?? false;
     }
 
     /**
