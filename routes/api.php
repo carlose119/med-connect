@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\DoctorController;
+use App\Http\Controllers\Api\MeController;
 use App\Http\Middleware\ResolveTimezone;
 use Illuminate\Support\Facades\Route;
 
@@ -21,12 +22,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): void {
-    // Minimal /api/me placeholder so the auth surface is testable
-    // end-to-end (see AuthSanctumTest). PR 3 swaps this for the
-    // full MeController that wraps a UserResource.
-    // Note: the `api` prefix is auto-applied by withRouting(api: ...) in
-    // bootstrap/app.php — do NOT add prefix('api') here.
-    Route::get('/me', fn () => response()->json(['data' => auth()->user()]));
+    // PR 3 — agenda-http — /me. Replaces the PR 1 placeholder
+    // (auth()->user() direct serialization) with a typed controller
+    // + UserResource. The middleware group still gates the route.
+    Route::get('/me', [MeController::class, 'show']);
 
     // PR 2 — agenda-http — Mutations.
     // The 16 read endpoints land in PR 3.
