@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\Api\ListDoctorsRequest;
+use App\Http\Requests\Api\ListSlotsRequest;
 use App\Http\Resources\Api\DoctorResource;
+use App\Http\Resources\Api\SlotResource;
 use App\Models\Doctor;
+use App\Services\DoctorAvailabilityService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 
@@ -48,5 +52,30 @@ class DoctorController extends Controller
             ->paginate($perPage);
 
         return DoctorResource::collection($paginator);
+    }
+
+    /**
+     * GET /api/doctors/{doctor}/slots — available slots for a date.
+     *
+     * Wraps the pure DoctorAvailabilityService::slots() function.
+     * The resolved TZ (from `?tz=` or the clinic default) is read
+     * inside SlotResource; we pass the service the local date and
+     * the service's own TZ argument (it falls back to the app
+     * timezone when null, which is what we want here).
+     */
+    public function slots(ListSlotsRequest $request, Doctor $doctor): AnonymousResourceCollection
+    {
+        $tzName = (string) ($request->attributes->get('tz')?->name ?? config('app.timezone'));
+
+        $date = CarbonImmutable::createFromFormat('Y-m-d', (string) $request->validated('date'))
+            ->setTimezone($tzName);
+
+        $slots = app(DoctorAvailabilityService::class)->slots(
+            $doctor->id,
+            $date,
+            $tzName,
+        );
+
+        return SlotResource::collection(collect($slots));
     }
 }

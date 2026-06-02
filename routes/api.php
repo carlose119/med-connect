@@ -37,5 +37,6 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
 
     // PR 3 — agenda-http — Doctor directory.
     Route::get('/doctors', [DoctorController::class, 'index']);
+    Route::get('/doctors/{doctor}/slots', [DoctorController::class, 'slots']);
 });
 
