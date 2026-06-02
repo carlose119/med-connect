@@ -75,7 +75,7 @@ it('lets the assigned doctor transition the appointment (happy path)', function 
 
     // The DB row must reflect the new state.
     $appointment->refresh();
-    expect($appointment->state->getName())->toBe($expected);
+    expect($appointment->state::$name)->toBe($expected);
 })->with('transitions');
 
 it('rejects a patient attempting the transition with UNAUTHORIZED_ACTOR', function (string $action): void {
@@ -106,5 +106,5 @@ it('rejects a patient attempting the transition with UNAUTHORIZED_ACTOR', functi
 
     // The DB state must NOT have changed.
     $appointment->refresh();
-    expect($appointment->state->getName())->toBe($sourceState);
+    expect($appointment->state::$name)->toBe($sourceState);
 })->with('transitions');
