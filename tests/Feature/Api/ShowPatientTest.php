@@ -74,3 +74,31 @@ it('returns 403 FORBIDDEN for a different patient', function (): void {
     $response->assertStatus(403)
         ->assertJsonPath('error.code', 'FORBIDDEN');
 });
+
+/**
+ * Coverage delta — agenda-test-coverage (item 3, spec/implementation
+ * drift). REQ-API-2 §5: "Doctor cannot read an unassigned patient".
+ *
+ * The current PatientPolicy@view (app/Policies/PatientPolicy.php
+ * lines 26-28) returns true for ANY doctor, which contradicts the
+ * spec. This test pins the corrected behavior: a doctor with no
+ * appointment with the patient MUST receive 403 FORBIDDEN.
+ *
+ * RED at this commit: the test asserts 403 + error.code = FORBIDDEN,
+ * but the current policy returns true → 200. The new scenario fails.
+ * The GREEN commit (T-COV-4) tightens PatientPolicy@view to enforce
+ * the "at least one appointment" check.
+ */
+it('returns 403 FORBIDDEN for a doctor with no shared appointments', function (): void {
+    [$doctorUser, , ] = $this->createDoctorWithToken();
+    [, $patient, ] = $this->createPatientWithToken();
+
+    // No appointment is created between the doctor and the patient.
+    // The doctor's cross-coverage 403 path of PatientPolicy@view is
+    // the test target.
+    $response = $this->actingAs($doctorUser, 'sanctum')
+        ->getJson("/api/patients/{$patient->id}");
+
+    $response->assertStatus(403)
+        ->assertJsonPath('error.code', 'FORBIDDEN');
+});
