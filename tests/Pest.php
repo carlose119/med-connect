@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesDoctors;
+use Tests\Support\CreatesPatients;
 use Tests\TestCase;
 
 /*
@@ -17,6 +19,23 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
     ->in('Feature');
+
+/*
+|--------------------------------------------------------------------------
+| API fixture traits (PR 2 — agenda-http)
+|--------------------------------------------------------------------------
+|
+| Auto-bind the patient/doctor fixture traits to every test in
+| tests/Feature/Api/**. Each test gets `createPatientWithToken()` and
+| `createDoctorWithToken()` as $this-> methods without an explicit
+| `uses(...)` line in the test file. The PR 2 book + cancel tests
+| consume these fixtures end-to-end.
+|
+*/
+
+pest()->extend(TestCase::class)
+    ->use(CreatesPatients::class, CreatesDoctors::class)
+    ->in('Feature/Api');
 
 /*
 |--------------------------------------------------------------------------
