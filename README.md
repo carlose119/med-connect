@@ -365,7 +365,7 @@ auth endpoints = 19 routes total.
 |----|--------|-----------------------------------------------------|--------------------|----------------------------------------------------------|
 | 1  | POST   | `/api/auth/login`                                   | none               | Exchange email + password for a Sanctum bearer token.     |
 | 2  | POST   | `/api/auth/logout`                                  | any                | Revoke the current access token. Returns 204.             |
-| 3  | GET    | `/api/me`                                           | any                | Current user (id, name, email, role).                    |
+| 3  | GET    | `/api/auth/me`                                      | any                | Current user (id, name, email, role).                    |
 | 4  | POST   | `/api/appointments`                                 | patient            | Book a new appointment. Returns 201.                      |
 | 5  | DELETE | `/api/appointments/{appointment}`                   | owner (patient/doctor) / admin | Cancel an appointment. Returns 200.        |
 | 6  | GET    | `/api/appointments`                                 | any (scoped)       | Paginated list, role-scoped.                             |
@@ -391,7 +391,7 @@ php artisan tinker --execute="echo \App\Models\User::factory()->create(['role'=>
 TOKEN="<paste the plaintext from step 1>"
 curl -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/json" \
-     http://127.0.0.1:8000/api/me
+     http://127.0.0.1:8000/api/auth/me
 ```
 
 The token is a `Laravel\Sanctum\HasApiTokens` `plainTextToken`
@@ -414,11 +414,11 @@ it, an unauthenticated request redirects to the web login page).
 
 ```bash
 # Default TZ (clinic TZ)
-curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/api/me
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/api/auth/me
 
 # Override to New York
 curl -H "Authorization: Bearer $TOKEN" \
-     "http://127.0.0.1:8000/api/me?tz=America/New_York"
+     "http://127.0.0.1:8000/api/auth/me?tz=America/New_York"
 ```
 
 ### Error envelope
@@ -507,7 +507,7 @@ curl -X DELETE \
 
 PR 3 of `agenda-http` adds **24 new feature tests** (well within
 the 400-line review budget) covering the 10 read endpoints, the 3
-transition endpoints, and the `GET /api/me` resource shape. Run
+transition endpoints, and the `GET /api/auth/me` resource shape. Run
 just the PR 3 slice:
 
 ```bash
