@@ -128,3 +128,53 @@ it('README route count is 18 and endpoint table lists GET /api/doctors/{doctor}'
     // The new row mapped to Api\DoctorController@show must be present.
     expect($readme)->toContain('GET    | `/api/doctors/{doctor}`');
 });
+
+/**
+ * Doc-contract tests: agenda/env-section-overhaul sub-capability
+ * (openspec/changes/env-section-overhaul/specs/agenda/env-section-overhaul/spec.md).
+ *
+ * REQ-ENV-SECTION-OVERHAUL-1 closes 3 env-section drifts accumulated since
+ * the agenda-readme-cleanup cycle (archived cb1f2d3):
+ *   1. Stack section PHP claim overstates composer.json `^8.3` (line 8)
+ *   2. Environment section PHP claim + factually-wrong parenthetical
+ *      (line 347, includes a negative assertion banning
+ *      `property hooks` and `asymmetric visibility` from the env section)
+ *   3. Stale "greenfield before that needs no DB" phraseology (line 350)
+ *
+ * 1-indexed line numbers locked in env-section-overhaul/proposal.md §"What changes".
+ */
+
+it('README line 8 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)', function () {
+    $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
+    expect($lines)->not->toBeFalse('Could not read README.md');
+    // 1-indexed line 8 = 0-indexed $lines[7]. Spec scenario 1 (REQ-ENV-SECTION-OVERHAUL-1)
+    // requires the Stack section to claim `Laravel 13 (PHP 8.3+)` matching composer.json.
+    expect($lines[7])->toContain('Laravel 13 (PHP 8.3+)');
+});
+
+it('README line 347 has correct Environment PHP claim and env section omits PHP 8.4 features', function () {
+    $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
+    expect($lines)->not->toBeFalse('Could not read README.md');
+    // 1-indexed line 347 = 0-indexed $lines[346]. Spec scenario 2 (REQ-ENV-SECTION-OVERHAUL-1)
+    // requires the env section to claim `PHP 8.3+ (per composer.json)` (not the stale
+    // `PHP 8.4+ (the project pins to features available in 8.4 ...)` claim).
+    expect($lines[346])->toContain('PHP 8.3+ (per composer.json)');
+
+    // Negative assertion (defense-in-depth): the env section (a 20-line window
+    // around line 347) MUST NOT contain the factually-wrong phraseology that
+    // claims PHP 8.4 features are used. Verified 0 matches for `property hooks`
+    // and `asymmetric visibility` in app/ (per proposal §"What changes" drift 2).
+    $envSection = implode("\n", array_slice($lines, 340, 20));
+    expect($envSection)->not->toContain('property hooks');
+    expect($envSection)->not->toContain('asymmetric visibility');
+});
+
+it('README line 350 omits the stale greenfield phraseology', function () {
+    $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
+    expect($lines)->not->toBeFalse('Could not read README.md');
+    // 1-indexed line 350 = 0-indexed $lines[349]. Spec scenario 3 (REQ-ENV-SECTION-OVERHAUL-1)
+    // requires the env section to NOT contain `greenfield before that needs no DB` —
+    // that phrase is from the pre-agenda-core era; after agenda-core was archived
+    // (commits 0a17b3c, e2ecc74) the project always needs a DB.
+    expect($lines[349])->not->toContain('greenfield before that needs no DB');
+});
