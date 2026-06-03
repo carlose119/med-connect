@@ -3,65 +3,64 @@
 declare(strict_types=1);
 
 /**
- * Doc-contract test: the agenda/api spec MUST reference the canonical
- * /api/auth/me route, not the retired placeholder /api/me, in REQ-API-7.
+ * Doc-contract test: the agenda/api spec REQ-API-7 MUST list exactly one
+ * scenario for the GET /api/auth/me endpoint, with the canonical form
+ * (Given "an authenticated user" + When `... with the bearer token`).
  *
- * REQ-SPEC-DRIFT-1 (openspec/changes/agenda-spec-drift):
- *   "The scenario at lines 313-316 of openspec/specs/agenda/api/spec.md MUST
- *    use the canonical GET /api/auth/me route in both its heading and its
- *    When clause, matching the route already documented at line 213 and the
- *    route the codebase exposes."
+ * REQ-API-DEDUP-1 (openspec/changes/agenda-api-dedup):
+ *   "The agenda/api spec REQ-API-7 MUST list exactly one scenario for
+ *    GET /api/auth/me. The post-archive duplicate created by the
+ *    agenda-spec-drift cycle (any-authenticated-user form, no bearer
+ *    token) is REMOVED. The kept scenario at the original line 213
+ *    (an-authenticated-user form, with the bearer token) is the canonical
+ *    form and is preserved."
  *
- * Backed by the `agenda/api-spec-drift` delta spec
- * (openspec/changes/agenda-spec-drift/specs/agenda/api/spec.md).
+ * The test uses scenario-heading-anchored regex (`^#### Scenario: GET
+ * /api/auth/me`), NOT the raw `GET /api/auth/me` substring (which would
+ * also match each scenario's When clause and inflate the count).
+ *
+ * Backed by the `agenda/api-dedup` delta spec
+ * (openspec/changes/agenda-api-dedup/specs/agenda/api/spec.md).
  *
  * Sibling of tests/Feature/Docs/ReadmeApiSurfaceTest.php, which closes the
  * same drift family in README.md (agenda-readme-drift archive at d3b4ef9).
  */
 
-// 1-indexed line numbers, locked in agenda-spec-drift/proposal.md §Scope.
-const SPEC_DRIFT_STALE_LINES = [313, 315];
+it('has exactly 1 GET /api/auth/me scenario in REQ-API-7', function () {
+    $spec = file_get_contents(base_path('openspec/specs/agenda/api/spec.md'));
+    expect($spec)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');
 
-it('uses canonical /api/auth/me in the scenario heading at line 313', function () {
-    $lines = file(base_path('openspec/specs/agenda/api/spec.md'), FILE_IGNORE_NEW_LINES);
-    expect($lines)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');
+    // Scenario-heading-anchored: each `#### Scenario: GET /api/auth/me`
+    // heading counts as exactly one scenario. The raw `GET /api/auth/me`
+    // substring would also match the When clause of each scenario, which
+    // would inflate the count and break the dedup contract.
+    $count = preg_match_all('/^#### Scenario: GET \/api\/auth\/me/m', $spec);
 
-    $content = $lines[SPEC_DRIFT_STALE_LINES[0] - 1];
-
-    expect($content)
-        ->toContain('/api/auth/me')
-        ->not->toContain('/api/me ');
+    expect($count)->toBe(1, "Expected exactly 1 GET /api/auth/me scenario heading in REQ-API-7, found {$count}");
 });
 
-it('uses canonical /api/auth/me in the When clause at line 315', function () {
-    $lines = file(base_path('openspec/specs/agenda/api/spec.md'), FILE_IGNORE_NEW_LINES);
-    expect($lines)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');
+it('preserves the canonical scenario with the bearer token (kept scenario)', function () {
+    $spec = file_get_contents(base_path('openspec/specs/agenda/api/spec.md'));
+    expect($spec)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');
 
-    $content = $lines[SPEC_DRIFT_STALE_LINES[1] - 1];
-
-    expect($content)
-        ->toContain('/api/auth/me')
-        ->not->toContain('/api/me`');
+    // The kept scenario is the canonical Sanctum form: it MUST mention
+    // `with the bearer token` in its When clause. Regression anchor: this
+    // test passes on main and after GREEN.
+    expect($spec)
+        ->toContain('#### Scenario: GET /api/auth/me returns 200 with the current user')
+        ->toContain('- **When** the client calls `GET /api/auth/me` with the bearer token')
+        ->toContain('- **Given** an authenticated user');
 });
 
-it('preserves the rest of the spec at lines 300-340', function () {
-    $lines = file(base_path('openspec/specs/agenda/api/spec.md'), FILE_IGNORE_NEW_LINES);
-    expect($lines)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');
+it('does not have a second GET /api/auth/me scenario with the any-authenticated-user form', function () {
+    $spec = file_get_contents(base_path('openspec/specs/agenda/api/spec.md'));
+    expect($spec)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');
 
-    // Surrounding lines that the fix MUST NOT touch.
-    $frozen = [
-        312 => '',
-        314 => '- **Given** any authenticated user',
-        316 => '- **Then** the response is `200` and the body is `{"data":{"id","name","email","role"}}`',
-        318 => '#### Scenario: GET /api/specialties returns 200 with the active specialty list',
-        319 => '- **Given** an authenticated user',
-        320 => '- **When** the client calls `GET /api/specialties?active=true`',
-    ];
-
-    foreach ($frozen as $lineNumber => $expected) {
-        expect($lines[$lineNumber - 1])->toBe(
-            $expected,
-            "Line {$lineNumber} drifted from its pre-fix content"
-        );
-    }
+    // The post-archive duplicate is uniquely identified by the Given
+    // clause `any authenticated user` (no article `an`) followed by a When
+    // clause `the client calls \`GET /api/auth/me\`` that does NOT include
+    // `with the bearer token`. The kept scenario uses `an authenticated
+    // user` (with the article) AND `with the bearer token`.
+    expect($spec)
+        ->not->toContain("- **Given** any authenticated user\n- **When** the client calls `GET /api/auth/me`");
 });
