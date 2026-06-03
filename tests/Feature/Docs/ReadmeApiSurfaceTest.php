@@ -98,11 +98,15 @@ it('README lines 314 and 349 use aligned Node 20.16+ wording', function () {
 it('README lines 283 and 464 use the med-connect.test email domain', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
-    // 1-indexed line 283 = 0-indexed $lines[282]; line 464 = $lines[463].
-    // Spec scenario 4 (REQ-README-CLEANUP-1) requires `med-connect.test` in both
-    // (matches database/seeders/DatabaseSeeder.php lines 29, 47, 81).
+    // 1-indexed line 283 = 0-indexed $lines[282].
+    // Line 464 (originally $lines[463] in the spec/proposal) shifts to $lines[464]
+    // because the endpoint table edit adds 1 row (the new GET /api/doctors/{doctor}
+    // row at row 12, renumbering the 6 subsequent rows 12-17 -> 13-18). The
+    // spec scenario 4 (REQ-README-CLEANUP-1) intent — both lines must contain
+    // `med-connect.test` (matches database/seeders/DatabaseSeeder.php lines 29,
+    // 47, 81) — is preserved.
     expect($lines[282])->toContain('med-connect.test');
-    expect($lines[463])->toContain('med-connect.test');
+    expect($lines[464])->toContain('med-connect.test');
 });
 
 it('README route count is 18 and endpoint table lists GET /api/doctors/{doctor}', function () {
@@ -116,7 +120,7 @@ it('README route count is 18 and endpoint table lists GET /api/doctors/{doctor}'
     // `| N | METHOD | \`/api/...\` ` pattern is unambiguous.
     $readme = file_get_contents(base_path('README.md'));
     $rowCount = preg_match_all(
-        '#^\| \d+ \| (?:GET|POST|DELETE|PUT|PATCH) +\| `/api/#m',
+        '#^\| \d+ +\| (?:GET|POST|DELETE|PUT|PATCH) +\| `/api/#m',
         $readme
     );
     expect($rowCount)->toBe(18);
