@@ -5,7 +5,7 @@ panels for the admin/doctor side and a patient-facing API.
 
 ## Stack
 
-- **Backend:** Laravel 13 (PHP 8.4+), Pest 4 for tests
+- **Backend:** Laravel 13 (PHP 8.3+), Pest 4 for tests
 - **Admin/Doctor panel:** FilamentPHP v5 (installed in PR 5)
 - **API auth:** Laravel Sanctum (installed in PR 3)
 - **Database:** PostgreSQL preferred, MariaDB fallback for local Laragon
@@ -344,10 +344,10 @@ checklist above), then `sdd-archive` to sync the delta specs into
 
 ## Environment
 
-- PHP 8.4+ (the project pins to features available in 8.4 — e.g. property hooks, asymmetric visibility)
+- PHP 8.3+ (per composer.json)
 - Composer 2.8+
 - Node 20.16+ (prints warning, build succeeds) or 22.12+
-- MariaDB 10.11+ or PostgreSQL 14+ for the agenda-core PR; greenfield before that needs no DB.
+- MariaDB 10.11+ or PostgreSQL 14+ for the agenda-core PR.
 
 ---
 
