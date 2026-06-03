@@ -1,4 +1,4 @@
-<!-- Source: openspec/changes/archive/agenda-http/specs/agenda/api/spec.md -- synced 2026-06-02 (agenda-http archive) -->
+<!-- Source: openspec/changes/archive/agenda-spec-drift/specs/agenda/api/spec.md -- synced 2026-06-02 (agenda-spec-drift archive) -->
 # Agenda API
 
 ## Purpose
