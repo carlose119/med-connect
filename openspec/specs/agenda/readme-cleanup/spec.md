@@ -1,4 +1,4 @@
-<!-- Source: openspec/changes/agenda-readme-cleanup/specs/agenda/readme-cleanup/spec.md -->
+<!-- Source: openspec/changes/archive/agenda-readme-cleanup/specs/agenda/readme-cleanup/spec.md -- synced 2026-06-03 (agenda-readme-cleanup archive) -->
 
 # Capability: agenda/readme-cleanup
 
@@ -33,9 +33,9 @@ The `README.md` MUST accurately reflect the current project state for the 5 clai
    - **Then** both MUST contain the aligned wording `Node 20.16+ (prints warning, build succeeds)`
    - **And** this reflects `node --version` (v20.16.0) and the project's actual Vite 7 build behavior; the prior `Node 20.19+` claim in the Environment section was an upstream Vite 7 requirement that does not apply to this project's actual node version.
 
-4. **Email domain (lines 283, 464)**
+4. **Email domain (lines 283, 465)**
    - **Given** the README references seeded user emails
-   - **When** lines 283 and 464 are read
+   - **When** lines 283 and 465 are read
    - **Then** both MUST contain `med-connect.test` (not `med-connect.local`)
    - **And** this matches `database/seeders/DatabaseSeeder.php` lines 29, 47, 81 which create `admin@med-connect.test`, `doctor@med-connect.test`, and `patient@med-connect.test`.
 
