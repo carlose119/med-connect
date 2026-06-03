@@ -310,11 +310,6 @@ The system MUST expose the 16 public endpoints + 3 auth endpoints listed in the 
 - **When** `A` calls `GET /api/patients/{id}`
 - **Then** the response is `200` and the body is `{"data":<PatientResource>}`
 
-#### Scenario: GET /api/auth/me returns 200 with the current user
-- **Given** any authenticated user
-- **When** the client calls `GET /api/auth/me`
-- **Then** the response is `200` and the body is `{"data":{"id","name","email","role"}}`
-
 #### Scenario: GET /api/specialties returns 200 with the active specialty list
 - **Given** an authenticated user
 - **When** the client calls `GET /api/specialties?active=true`
