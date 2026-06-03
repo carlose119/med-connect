@@ -68,7 +68,7 @@ pending appointment):
 php artisan migrate:fresh --seed
 ```
 
-Roll back the 16 agenda-core migrations (15 from PR 1+2 + Sanctum personal_access_tokens):
+Roll back the 16 agenda-core migrations (13 from PR 1+2 + Sanctum personal_access_tokens):
 
 ```bash
 php artisan migrate:rollback --step=16
@@ -280,7 +280,7 @@ php artisan serve --host=127.0.0.1 --port=8000
 # 3) Open in a browser
 #    http://127.0.0.1:8000/admin   →  log in as the seeded admin
 #    http://127.0.0.1:8000/doctor  →  log in as a user with role=doctor
-#                                    (the seeded `doctor@med-connect.local`
+#                                    (the seeded `doctor@med-connect.test`
 #                                    is the doctor, NOT the admin)
 ```
 
@@ -301,7 +301,7 @@ immediately with the password the admin typed in.
 ### Run the PR 5 test slice
 
 ```bash
-# All 42 cases on SQLite (default), 44 on MariaDB
+# All 136+4 cases on SQLite (default), 140 on MariaDB
 vendor/bin/pest
 
 # Just the panel-access matrix
@@ -310,8 +310,8 @@ vendor/bin/pest --filter=FilamentPanelAccessTest
 
 ### Known PR 5 caveats
 
-- **Vite 7 + Node 20.16** prints a non-blocking warning that Node 20.19+
-  is required; the build still succeeds. Upgrade Node at your leisure.
+- **Vite 7** is compatible with
+  Node 20.16+ (prints warning, build succeeds); 22.12+ is fully compatible.
 - **`Specialty::where('is_active', true)`** in `UserForm` requires the
   PR 2 migration to have actually been applied. If you see "no
   specialties in the dropdown" after seeding, run
@@ -346,7 +346,7 @@ checklist above), then `sdd-archive` to sync the delta specs into
 
 - PHP 8.4+ (the project pins to features available in 8.4 — e.g. property hooks, asymmetric visibility)
 - Composer 2.8+
-- Node 20.19+ (Vite 7 requires it) or 22.12+
+- Node 20.16+ (prints warning, build succeeds) or 22.12+
 - MariaDB 10.11+ or PostgreSQL 14+ for the agenda-core PR; greenfield before that needs no DB.
 
 ---
@@ -356,8 +356,8 @@ checklist above), then `sdd-archive` to sync the delta specs into
 A JSON HTTP API is exposed under `/api/*` for the patient web portal
 and a future mobile app. All endpoints (except `POST /api/auth/login`)
 require a Sanctum bearer token. The transport is locked at the end
-of PR 3 of the `agenda-http` change — the 16 public endpoints + 3
-auth endpoints = 19 routes total.
+of PR 3 of the `agenda-http` change — the 15 public endpoints + 3
+auth endpoints = 18 routes total.
 
 ### Endpoint table
 
@@ -374,12 +374,13 @@ auth endpoints = 19 routes total.
 | 9  | POST   | `/api/appointments/{id}/transitions/complete`       | assigned doctor    | confirmed → completed.                                   |
 | 10 | POST   | `/api/appointments/{id}/transitions/no-show`        | assigned doctor / admin | confirmed → no_show.                                |
 | 11 | GET    | `/api/doctors`                                      | any                | Paginated list of active doctors.                        |
-| 12 | GET    | `/api/doctors/{id}/slots`                           | any                | Available slots for a date.                              |
-| 13 | GET    | `/api/specialties`                                  | any                | Active specialties (not paginated).                      |
-| 14 | GET    | `/api/patients/{id}`                                | admin / doctor / self | Patient profile.                                       |
-| 15 | GET    | `/api/medical-histories/{id}`                       | self / doctor with appointment / admin | Medical history.                              |
-| 16 | GET    | `/api/prescriptions`                                | any (scoped)       | Paginated list, role-scoped.                             |
-| 17 | GET    | `/api/audit-logs`                                   | admin              | Paginated list, admin-only.                              |
+| 12 | GET    | `/api/doctors/{doctor}`                             | any                | Single doctor detail.                                    |
+| 13 | GET    | `/api/doctors/{id}/slots`                           | any                | Available slots for a date.                              |
+| 14 | GET    | `/api/specialties`                                  | any                | Active specialties (not paginated).                      |
+| 15 | GET    | `/api/patients/{id}`                                | admin / doctor / self | Patient profile.                                       |
+| 16 | GET    | `/api/medical-histories/{id}`                       | self / doctor with appointment / admin | Medical history.                              |
+| 17 | GET    | `/api/prescriptions`                                | any (scoped)       | Paginated list, role-scoped.                             |
+| 18 | GET    | `/api/audit-logs`                                   | admin              | Paginated list, admin-only.                              |
 
 ### Auth flow
 
@@ -461,7 +462,7 @@ TOKEN="<paste from tinker>"
 
 # Login (mints a token)
 curl -X POST -H "Content-Type: application/json" \
-     -d '{"email":"patient@med-connect.local","password":"password"}' \
+     -d '{"email":"patient@med-connect.test","password":"password"}' \
      http://127.0.0.1:8000/api/auth/login
 
 # List my appointments
