@@ -278,12 +278,12 @@ The system MUST expose the 16 public endpoints + 3 auth endpoints listed in the 
 #### Scenario: GET /api/doctors returns 200 with paginated doctor list
 - **Given** an authenticated user
 - **When** the client calls `GET /api/doctors` with optional `?specialty_id= ?q=`
-- **Then** the response is `200` with the paginated envelope; each row has `id`, `name`, `specialty{name,slug}`, `license_number`
+- **Then** the response is `200` with the paginated envelope; each row has `id`, `user_id`, `specialty_id`, `license_number`, `user{id,name,email}`, `specialty{id,name,slug}`
 
 #### Scenario: GET /api/doctors/{id} returns 200 with doctor detail
 - **Given** an authenticated user and an existing doctor
 - **When** the client calls `GET /api/doctors/{id}`
-- **Then** the response is `200` and the body is `{"data":<DoctorResource>}` with `id`, `name`, `specialty`, `bio`, `license_number`
+- **Then** the response is `200` and the body is `{"data":<DoctorResource>}` with `id`, `user_id`, `specialty_id`, `license_number`, `bio`, `user{id,name,email}`, `specialty{id,name,slug}`
 
 #### Scenario: GET /api/doctors/{id} for a missing doctor returns 404
 - **Given** no doctor with id `99999`
