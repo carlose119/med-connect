@@ -330,7 +330,7 @@ vendor/bin/pest --filter=FilamentPanelAccessTest
 
 ### Test status
 
-- **SQLite** (default): 150 passed + 4 skipped (577 assertions) — 4 race tests skip on SQLite
+- **SQLite** (default): 150 passed + 4 skipped (578 assertions) — 4 race tests skip on SQLite
 - **MariaDB** (projected): 154 passed + 0 skipped — not yet run in current session; parity pending env
 - 0 canonical spec drift (`git diff main~N..HEAD -- openspec/specs/` returns 0 lines)
 
