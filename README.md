@@ -320,27 +320,36 @@ vendor/bin/pest --filter=FilamentPanelAccessTest
   installed. The `canAccessPanel` gate is sufficient for PR 5; richer
   per-resource authorization lands in a future `rbac-advanced` change.
 
-## Status — agenda-core
+## Status
 
-**Feature-complete pending `sdd-verify`.** All five PRs of the
-chained split are landed on `feat/filament-panels` (the final branch
-in the chain) and the test suite is green:
+### Build status
 
-| PR  | Scope                                                          | Branch              | Review |
-|-----|----------------------------------------------------------------|---------------------|--------|
-| 1   | Skeleton (`composer create-project` + `.atl/` + `openspec/`)   | (merged to main)    | 0 LOC  |
-| 2   | 13 migrations + 12 Eloquent models + 13 factories + seeder     | (merged to main)    | ~1500  |
-| 3   | Sanctum + RBAC + state machine + 3 Gate policies               | (merged to main)    | ~600   |
-| 4   | 1 service + 3 actions + 3 domain exceptions                   | (merged to main)    | ~1230  |
-| 5   | Filament v5 panels + `UserResource` + `SpecialtyResource`      | `feat/filament-panels` | ~700 (excl. `composer.lock` / fonts) |
+- 18 routes (3 auth + 15 public); unchanged since `agenda-readme-cleanup`
+- 13 migrations + 12 Eloquent models + 13 factories (from `agenda-core`)
+- Filament v5 panels: `/admin` (UserResource, SpecialtyResource) + `/doctor` (dashboard only)
 
-The 6 proposal smoke tests + the 4 panel-access scenarios from
-`users-roles/spec.md` are all passing. Next step is
-`sdd-verify` (a separate agent audits the red→green pairs in
-`git log`, the test count, the route map, and the manual-visit
-checklist above), then `sdd-archive` to sync the delta specs into
-`openspec/specs/` and move the change folder to
-`openspec/changes/archive/`.
+### Test status
+
+- **SQLite** (default): 150 passed + 4 skipped (577 assertions) — 4 race tests skip on SQLite
+- **MariaDB** (projected): 154 passed + 0 skipped — not yet run in current session; parity pending env
+- 0 canonical spec drift (`git diff main~N..HEAD -- openspec/specs/` returns 0 lines)
+
+### SDD state
+
+- 13 capabilities, 34 reqs, 138 scenarios, 18 routes (per obs #98)
+- 9 archived changes; 0 active changes (only `archive/` directory under `openspec/changes/`)
+
+### Roadmap
+
+- [x] `agenda-core` — 13 migrations, 12 models, 13 factories, Sanctum, RBAC, state machine
+- [x] `agenda-http` — 18 routes, 3 auth + 15 public, Sanctum bearer
+- [x] `agenda-test-coverage` — test slice normalization
+- [x] `agenda-readme-drift` — 5 `/api/me` references closed
+- [x] `agenda-spec-drift` — `agenda/api` spec brought into compliance
+- [x] `agenda-api-dedup` — duplicate `GET /api/auth/me` scenario removed
+- [x] `agenda-readme-cleanup` — 5 cosmetic README drifts
+- [x] `env-section-overhaul` — 3 env-section drifts (PHP, parenthetical, greenfield)
+- [x] `agenda-prd-update` — 3 AGENTS.md drifts (PHP, Pest, unique partial index)
 
 ## Environment
 
