@@ -178,3 +178,66 @@ it('README line 350 omits the stale greenfield phraseology', function () {
     // (commits 0a17b3c, e2ecc74) the project always needs a DB.
     expect($lines[349])->not->toContain('greenfield before that needs no DB');
 });
+
+/**
+ * Doc-contract tests: agenda/readme-revamp sub-capability
+ * (openspec/changes/agenda-readme-revamp/specs/agenda/readme-revamp/spec.md).
+ *
+ * REQ-README-REVAMP-1 closes 3 drifts in the README.md ## Status section
+ * (lines 323-343) accumulated since the agenda-core chained split was
+ * archived 9 cycles ago (commits 0a17b3c, e2ecc74):
+ *   1. Stale `## Status — agenda-core` subtitle (line 323)
+ *   2. Flat 21-line prose block with no per-concern organization
+ *   3. Stale `**Feature-complete pending sdd-verify.**` text + obsolete
+ *      `sdd-verify` next-step paragraph (lines 325-343)
+ *
+ * 1-indexed line numbers locked in agenda-readme-revamp/proposal.md §"What changes".
+ */
+
+it('README line 323 has bare `## Status` heading (no agenda-core subtitle)', function () {
+    $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
+    expect($lines)->not->toBeFalse('Could not read README.md');
+    // 1-indexed line 323 = 0-indexed $lines[322]. Spec scenario 1 (REQ-README-REVAMP-1)
+    // requires the Status section heading to be exactly `## Status` (no subtitle).
+    // The stale `## Status — agenda-core` is from the frozen cycle-1 chained split.
+    expect($lines[322])->toBe('## Status');
+});
+
+it('README Status section has 4 h3 subsections in order (Build, Test, SDD state, Roadmap)', function () {
+    $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
+    expect($lines)->not->toBeFalse('Could not read README.md');
+    // Status section starts at 1-indexed line 323 (0-indexed 322).
+    // Bound the section by finding the next h2 (## ...) heading.
+    $startIndex = 322;
+    $endIndex = count($lines);
+    for ($i = $startIndex + 1; $i < count($lines); $i++) {
+        if (preg_match('/^## [^#]/', $lines[$i])) {
+            $endIndex = $i;
+            break;
+        }
+    }
+    $section = array_slice($lines, $startIndex, $endIndex - $startIndex);
+    $headings = [];
+    foreach ($section as $line) {
+        if (preg_match('/^### (.+)$/', $line, $m)) {
+            $headings[] = trim($m[1]);
+        }
+    }
+    // Spec scenario 2 (REQ-README-REVAMP-1) requires exactly 4 h3s in this
+    // exact order: Build status, Test status, SDD state, Roadmap.
+    expect($headings)->toBe(['Build status', 'Test status', 'SDD state', 'Roadmap']);
+});
+
+it('README Status section omits stale `Feature-complete pending sdd-verify` text', function () {
+    $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
+    expect($lines)->not->toBeFalse('Could not read README.md');
+    // Slice a 40-line window starting at line 323 (0-indexed 322) to bound
+    // the Status section. The 40-line window covers the new ~30-line
+    // section (lines 323-352) plus 8 lines of padding.
+    $statusSection = implode("\n", array_slice($lines, 322, 40));
+    // Spec scenario 3 (REQ-README-REVAMP-1) requires the Status section
+    // to NOT contain the stale `Feature-complete pending` and `sdd-verify`
+    // text from the frozen cycle-1 chained split.
+    expect($statusSection)->not->toContain('Feature-complete pending');
+    expect($statusSection)->not->toContain('sdd-verify');
+});
