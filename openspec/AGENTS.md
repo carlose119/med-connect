@@ -55,7 +55,7 @@ These are global and must be respected by every change:
 
 - **Appointments state machine** — `pending | confirmed | completed | cancelled | no_show` (terminals: `completed`, `cancelled`, `no_show`). Implemented with `spatie/laravel-model-states` backed by a PHP Enum.
 - **Doctor schedule** — `doctor_schedules` (recurring rules per `day_of_week`) + `doctor_schedule_overrides` (point-in-time exceptions: `block` or `extra_availability`). Slots are generated on the fly, never persisted.
-- **`appointments`** — `start_time` and `end_time` (both stored as UTC). Unique partial index `(doctor_id, start_time) WHERE status != 'cancelled'` to prevent double booking.
+- **`appointments`** — `start_time` and `end_time` (both stored as UTC). Unique constraint on `(doctor_id, start_time) where status != 'cancelled'` (driver-aware: MariaDB/MySQL use a generated `cancelled_marker` column + UNIQUE KEY on `(doctor_id, start_time, cancelled_marker)`; PostgreSQL/SQLite use a partial unique index `(doctor_id, start_time) WHERE status != 'cancelled'`) to prevent double booking.
 - **Timezones** — UTC in DB; consultorio timezone for display; mobile app timezone resolved later.
 - **`medical_notes`** — append-only. The table has no `updated_at`; amendments are modeled via a `corrects_note_id` FK pointing at the previous note.
 - **`audit_logs`** — dedicated table for admin actions.
@@ -66,13 +66,13 @@ These are global and must be respected by every change:
 
 ## Stack (from approved PRD)
 
-- **Backend**: Laravel 13 (PHP 8.4+)
+- **Backend**: Laravel 13 (PHP 8.3+)
 - **Admin/Doctor panel**: FilamentPHP v5 (Livewire + Alpine + Tailwind)
 - **API auth**: Laravel Sanctum
 - **DB**: PostgreSQL (preferred). MariaDB is the local fallback available via Laragon if Postgres is not running.
 - **Patient web**: Blade + Tailwind consuming the API (or a chosen JS framework later)
 - **Mobile**: React Native + Expo (separate codebase, out of this repo for v1)
-- **Testing**: Pest 3 (modern Laravel default)
+- **Testing**: Pest 4 (modern Laravel default)
 
 ## Local environment (Laragon, Windows)
 
