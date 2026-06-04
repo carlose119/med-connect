@@ -70,7 +70,6 @@ it('uses canonical /api/auth/me in curl examples', function () {
  *
  * 1-indexed line numbers locked in agenda-readme-cleanup/proposal.md §"What changes".
  */
-
 it('README line 71 has correct migration count breakdown (13 from PR 1+2)', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
@@ -147,7 +146,6 @@ it('README route count is 18 and endpoint table lists GET /api/doctors/{doctor}'
  *
  * 1-indexed line numbers locked in env-section-overhaul/proposal.md §"What changes".
  */
-
 it('README line 8 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
@@ -205,7 +203,6 @@ it('README line 350 omits the stale greenfield phraseology', function () {
  *
  * 1-indexed line numbers locked in agenda-readme-revamp/proposal.md §"What changes".
  */
-
 it('README line 323 has bare `## Status` heading (no agenda-core subtitle)', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
