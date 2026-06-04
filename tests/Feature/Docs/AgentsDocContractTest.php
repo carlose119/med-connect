@@ -21,7 +21,6 @@ declare(strict_types=1);
  *
  * 1-indexed line numbers locked in agenda-prd-update/proposal.md §"What changes".
  */
-
 test('AGENTS.md line 69 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)', function () {
     $lines = file(base_path('openspec/AGENTS.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read AGENTS.md');
