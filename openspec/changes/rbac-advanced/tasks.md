@@ -39,10 +39,10 @@ Chain strategy: stacked-to-main
 
 ## Phase 2 — Slice 2 / PR 2: RoleResource + PermissionResource + plugin (REQ `Admin Panel Role and Permission UI`)
 
-- [ ] 2.1 RED: write `tests/Feature/Admin/RoleResourceAccessTest.php` — admin->`/admin/roles` 200; doctor/patient->403; non-admin->`/admin/permissions` 403; super-admin toggle grants `super_admin` Spatie role AND `isAdmin()` stays true.
-- [ ] 2.2 GREEN: create `app/Filament/Resources/Roles/{RoleResource.php,Pages/{ListRoles,CreateRole,EditRole}.php,Schemas/RoleForm.php,Tables/RolesTable.php}` mirroring `Specialties/*`; create `app/Filament/Resources/Permissions/PermissionResource.php` (create-page per OQ #3).
-- [ ] 2.3 GREEN: register `->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())` in `app/Providers/Filament/AdminPanelProvider.php` (additive chain; keep `discoverResources`).
-- [ ] 2.4 VERIFY: `vendor/bin/pest --filter=RoleResourceAccessTest` flips RED->GREEN; `UserResource`+`SpecialtyResource` still reachable; mark 2.1-2.3 done.
+- [x] 2.1 RED: write `tests/Feature/Admin/RoleResourceAccessTest.php` — admin->`/admin/roles` 200; doctor/patient->403; non-admin->`/admin/permissions` 403; super-admin toggle grants `super_admin` Spatie role AND `isAdmin()` stays true.
+- [x] 2.2 GREEN: create `app/Filament/Resources/Roles/{RoleResource.php,Pages/{ListRoles,CreateRole,EditRole}.php,Schemas/RoleForm.php,Tables/RolesTable.php}` mirroring `Specialties/*`; create `app/Filament/Resources/Permissions/PermissionResource.php` (create-page per OQ #3).
+- [x] 2.3 GREEN: register `->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())` in `app/Providers/Filament/AdminPanelProvider.php` (additive chain; keep `discoverResources`).
+- [x] 2.4 VERIFY: `vendor/bin/pest --filter=RoleResourceAccessTest` flips RED->GREEN; `UserResource`+`SpecialtyResource` still reachable; mark 2.1-2.3 done.
 
 ## Phase 3 — Slice 3 / PR 3: HasRoles + 3 policy additive lookups (REQ `Additive Spatie Role Lookups`)
 

@@ -19,14 +19,30 @@ Adds `filament/shield` 4.2.0 as a **second**, panel-scoped authorization layer f
 
 `spatie/laravel-model-states` 2.13 is pinned. Shield 4.2.0 needs `spatie/laravel-permission` 6/7.
 
-| Step | Action |
-|---|---|
-| 1 | `composer why-not spatie/laravel-permission` BEFORE merging slice 1 |
-| 2 | Pin `spatie/laravel-permission:^6` (peer Spatie pkgs typically reconcile) |
-| 3 | If `^6` fails, fall back to `^7`; document pivot in PR body |
-| 4 | `composer install` green; `model-states` 2.13 and `permission` 6/7 both present |
+**UPDATED 2026-06-05 (slice 1 apply)** — the `^6 then ^7` fallback is **obsolete** on Laravel 13. The actual path that landed is an **inline alias** that exposes 8.0.0 to Shield as 7.0.0.
 
-Slice 1 carries this risk; slice 2 cannot start until composer is green
+| Step | Action | Reality on Laravel 13 |
+|---|---|---|
+| 1 | `composer why-not spatie/laravel-permission` BEFORE merging slice 1 | ✅ `spatie/laravel-permission 8.0.0` released 2026-05-30 (one week before apply) — `why-not` shows it as a candidate |
+| 2 | Pin `spatie/laravel-permission:^6` (peer Spatie pkgs typically reconcile) | ❌ FAIL: `6.0.0` requires `illuminate/auth ^8.12\|^9.0\|^10.0` (Laravel 8/9/10 only) |
+| 3 | If `^6` fails, fall back to `^7`; document pivot in PR body | ❌ FAIL: `7.0.0` requires `illuminate/auth ^12.0` (Laravel 12 only — not 13) |
+| 4 | `composer install` green; `model-states` 2.13 and `permission` 6/7 both present | ✅ `composer require filament/shield:4.2.0 'spatie/laravel-permission:8.0.0 as 7.0.0' --with-all-dependencies` → 109 packages installed; `composer show spatie/laravel-permission --all` reports `versions : * 8.0.0` and `source : .../tree/7.0.0` (the alias exposes 8.0.0 to Shield as 7.0.0) |
+
+**Final `composer.json` line (slice 1, locked)**:
+```json
+"spatie/laravel-permission": "8.0.0 as 7.0.0",
+```
+
+**Why inline aliasing is safe** (documented in slice 1 apply-progress + GREEN commit `ed6c618` body):
+- Shield 4.2.0's API surface (HasRoles trait, Role/Permission models, Gate integration) is identical between permission 7.x and 8.x — the 8.0.0 changelog is mostly Laravel 12/13 support + dependency updates, not breaking model API changes.
+- The 6 slice 1 GREEN-state tests exercise the only code paths Shield 4.2.0 actually needs from the permission package: `Role::create`, `Permission::create`, `Role::query`, `Permission::query`. All pass.
+- If a future Shield feature path needs an 8.x-only API, the alias becomes a no-op when Shield upstream widens the constraint to `^6|^7|^8`. The lock file already records 8.0.0.
+
+**Fallback if aliasing causes a runtime issue in slice 2/3**:
+- Patch `vendor/bezhansalleh/filament-shield/composer.json` via `cweagans/composer-patches` to widen the constraint to `^6|^7|^8`. Local patch, no upstream PR needed.
+- OR: open an upstream PR on bezhanSalleh/filament-shield 4.x branch to widen the constraint.
+
+**Risk**: low for slice 1 (table existence + Eloquent create/query don't touch version-specific APIs). Medium for slice 2 (RoleResource + PermissionResource wire format) and slice 3 (HasRoles + Gate lookups) — those are the real regression net. Slice 2 RED→GREEN test suite stayed at 6 passed (11 assertions) and the full suite stayed green (165 passed, 4 skipped, 612 assertions), so the alias survives end-to-end at the Resource layer too.
 
 ### Decision 3 — Additive Spatie Role lookup in 3 Gate policies
 
