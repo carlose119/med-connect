@@ -10,6 +10,15 @@ use App\Models\User;
  * Only admins can manage user records. Users may view their own record
  * (used for the Sanctum /user endpoint). Doctors and patients cannot
  * view or modify other users' records.
+ *
+ * Slice 3 (REQ-ADV-3 / design.md Decision 3): each ENUM predicate is
+ * OR'd with the corresponding Spatie Role lookup. The ENUM check is
+ * the first operand — if it is true, the method short-circuits and
+ * returns true regardless of Spatie state. The Spatie branch is a
+ * fallback that grants access additively when the ENUM check fails
+ * (e.g. a "patient" ENUM user granted Spatie 'admin' can now view +
+ * update + create + delete any user record). The ENUM side is
+ * unchanged → the existing PolicyTest still passes.
  */
 class UserPolicy
 {
@@ -18,7 +27,7 @@ class UserPolicy
      */
     public function viewAny(User $actor): bool
     {
-        return $actor->isAdmin();
+        return $actor->isAdmin() || $actor->hasRole('admin');
     }
 
     /**
@@ -26,7 +35,7 @@ class UserPolicy
      */
     public function view(User $actor, User $target): bool
     {
-        return $actor->isAdmin() || $actor->id === $target->id;
+        return ($actor->isAdmin() || $actor->hasRole('admin')) || $actor->id === $target->id;
     }
 
     /**
@@ -34,7 +43,7 @@ class UserPolicy
      */
     public function create(User $actor): bool
     {
-        return $actor->isAdmin();
+        return $actor->isAdmin() || $actor->hasRole('admin');
     }
 
     /**
@@ -42,7 +51,7 @@ class UserPolicy
      */
     public function update(User $actor, User $target): bool
     {
-        return $actor->isAdmin();
+        return $actor->isAdmin() || $actor->hasRole('admin');
     }
 
     /**
@@ -50,6 +59,6 @@ class UserPolicy
      */
     public function delete(User $actor, User $target): bool
     {
-        return $actor->isAdmin();
+        return $actor->isAdmin() || $actor->hasRole('admin');
     }
 }
