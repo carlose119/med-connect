@@ -7,6 +7,7 @@ use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -54,6 +55,16 @@ beforeEach(function () {
         ->for($this->doctor)
         ->for($this->patient)
         ->create();
+
+    // Seed the Spatie roles so `$user->assignRole('<role>')` resolves.
+    // Spatie's `assignRole()` calls `Role::findByName()` which throws
+    // `RoleDoesNotExist` if the role is missing — so we create them
+    // eagerly in beforeEach rather than scattering `Role::create()`
+    // calls in each test. The guard must be `web` to match the
+    // `auth.defaults.guard` config.
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'patient', 'guard_name' => 'web']);
 });
 
 it('UserPolicy: Spatie admin role grants view and viewAny to a non-admin ENUM user', function () {
