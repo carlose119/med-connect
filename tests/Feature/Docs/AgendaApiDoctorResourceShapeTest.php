@@ -34,7 +34,6 @@ declare(strict_types=1);
  * Sibling of tests/Feature/Docs/AgendaApiSpecCanonicalRoutesTest.php,
  * which closes a different drift in the same agenda/api spec.
  */
-
 const DRIFT_STALE_LINES = [281, 286];
 
 it('agenda/api REQ-API-7 line 281 describes the list row wire shape with user nested', function () {
