@@ -4,6 +4,8 @@ use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Specialty;
+use App\States\Appointment\Cancelled;
+use App\States\Appointment\Pending;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -36,7 +38,7 @@ it('cancels an appointment when inside the 24h window (start_time at +48h)', fun
     $response->assertSessionHas('status');
 
     $appointment->refresh();
-    expect($appointment->state)->toBe('cancelled');
+    expect($appointment->state)->toBeInstanceOf(Cancelled::class);
 });
 
 it('rejects cancellation when outside the 24h window (start_time at +12h)', function (): void {
@@ -58,5 +60,5 @@ it('rejects cancellation when outside the 24h window (start_time at +12h)', func
 
     // State must remain unchanged
     $appointment->refresh();
-    expect($appointment->state)->toBe('pending');
+    expect($appointment->state)->toBeInstanceOf(Pending::class);
 });

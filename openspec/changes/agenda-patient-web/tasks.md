@@ -45,13 +45,13 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Booking + Cancellation (Slice 3 — ~350 lines)
 
-- [ ] 2.1 Write RED test: `tests/Feature/Patient/AppointmentBookingTest.php` — happy path + race condition
-- [ ] 2.2 Write RED test: `tests/Feature/Patient/AppointmentCancellationTest.php` — inside/outside 24h window
-- [ ] 2.3 Create `app/Livewire/Patient/BookAppointment.php` + `resources/views/patient/book.blade.php` with `lockForUpdate` transaction — GREEN
-- [ ] 2.4 Create `app/Http/Controllers/Patient/CancelAppointmentController.php` with 24h assertion — GREEN
-- [ ] 2.5 Run `php artisan test --filter=AppointmentBooking|AppointmentCancellation` — all green
+- [x] 2.1 Write RED test: `tests/Feature/Patient/AppointmentBookingTest.php` — happy path + race condition
+- [x] 2.2 Write RED test: `tests/Feature/Patient/AppointmentCancellationTest.php` — inside/outside 24h window
+- [x] 2.3 Create `app/Livewire/Patient/BookAppointment.php` + `resources/views/patient/book.blade.php` with `lockForUpdate` transaction — GREEN
+- [x] 2.4 Create `app/Http/Controllers/Patient/CancelAppointmentController.php` with 24h assertion — GREEN
+- [x] 2.5 Run `vendor/bin/pest --filter=AppointmentBooking|AppointmentCancellation` — all green (4 passed)
 
 ## Phase 3: Housekeeping (All Slices)
 
-- [ ] 3.1 Run full test suite — all existing + new tests green, API routes untouched
-- [ ] 3.2 Mark tasks complete in tasks.md
+- [x] 3.1 Run full test suite — all existing + new tests green (186 passed, 4 skipped), API routes intact (18)
+- [x] 3.2 Mark tasks complete in tasks.md

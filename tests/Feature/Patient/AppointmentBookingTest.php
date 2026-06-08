@@ -1,13 +1,16 @@
 <?php
 
+use App\Livewire\Patient\BookAppointment;
 use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Specialty;
+use App\States\Appointment\Pending;
 use Carbon\CarbonImmutable;
 use Database\Factories\DoctorScheduleFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Livewire\Testing\TestableLivewire;
 
 uses(RefreshDatabase::class);
 
@@ -40,8 +43,8 @@ it('creates an appointment with status pending on the happy path', function (): 
 
     $selectedDate = $this->scheduleDay->format('Y-m-d');
 
-    /** @var \Livewire\Testing\TestableLivewire $component */
-    $component = Livewire::test(\App\Livewire\Patient\BookAppointment::class, [
+    /** @var TestableLivewire $component */
+    $component = Livewire::test(BookAppointment::class, [
         'doctor' => $this->doctor,
     ]);
 
@@ -69,7 +72,7 @@ it('creates an appointment with status pending on the happy path', function (): 
         ->first();
 
     expect($appointment)->not->toBeNull();
-    expect($appointment->state)->toBe('pending');
+    expect($appointment->state)->toBeInstanceOf(Pending::class);
 });
 
 it('shows a slot not available error when the slot is already taken', function (): void {
@@ -88,8 +91,8 @@ it('shows a slot not available error when the slot is already taken', function (
         'state' => 'pending',
     ]);
 
-    /** @var \Livewire\Testing\TestableLivewire $component */
-    $component = Livewire::test(\App\Livewire\Patient\BookAppointment::class, [
+    /** @var TestableLivewire $component */
+    $component = Livewire::test(BookAppointment::class, [
         'doctor' => $this->doctor,
     ]);
 

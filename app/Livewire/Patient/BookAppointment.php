@@ -35,7 +35,7 @@ class BookAppointment extends Component
     public function loadSlots(): void
     {
         $this->validate([
-            'selectedDate' => ['required', 'date', 'after_or_equal:' . now()->format('Y-m-d'), 'before_or_equal:' . now()->addDays(7)->format('Y-m-d')],
+            'selectedDate' => ['required', 'date', 'after_or_equal:'.now()->format('Y-m-d'), 'before_or_equal:'.now()->addDays(7)->format('Y-m-d')],
         ]);
 
         $date = CarbonImmutable::parse($this->selectedDate);
@@ -55,6 +55,7 @@ class BookAppointment extends Component
 
         if ($start->lt(now()->addHours(2))) {
             $this->addError('selectedSlot', 'Bookings require at least 2 hours of anticipation.');
+
             return;
         }
 
@@ -70,6 +71,7 @@ class BookAppointment extends Component
 
         if (! $isAvailable) {
             $this->addError('selectedSlot', 'This slot is no longer available. Please select another time.');
+
             return;
         }
 
@@ -90,6 +92,7 @@ class BookAppointment extends Component
 
         if ($overlap) {
             $this->addError('selectedSlot', 'You already have an appointment overlapping this time slot.');
+
             return;
         }
 
