@@ -27,6 +27,12 @@
                     @if($doctor->bio)
                         <p class="text-sm text-gray-500 mt-2">{{ Str::limit($doctor->bio, 100) }}</p>
                     @endif
+                    <div class="mt-3">
+                        <a href="{{ route('patient.book', $doctor) }}"
+                           class="inline-block px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
+                            Book Appointment
+                        </a>
+                    </div>
                 </div>
             @endforeach
         </div>
