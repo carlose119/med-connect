@@ -13,14 +13,26 @@
                                 {{ $appointment->start_time->format('M d, Y') }} at {{ $appointment->start_time->format('H:i') }}
                             </p>
                         </div>
-                        <span class="px-2 py-1 text-xs font-medium rounded-full
-                            @if($appointment->state === 'pending') bg-yellow-100 text-yellow-800
-                            @elseif($appointment->state === 'confirmed') bg-green-100 text-green-800
-                            @else bg-gray-100 text-gray-800
-                            @endif"
-                        >
-                            {{ $appointment->state }}
-                        </span>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                @if($appointment->state === 'pending') bg-yellow-100 text-yellow-800
+                                @elseif($appointment->state === 'confirmed') bg-green-100 text-green-800
+                                @else bg-gray-100 text-gray-800
+                                @endif"
+                            >
+                                {{ $appointment->state }}
+                            </span>
+                            @if($appointment->state === 'pending' || $appointment->state === 'confirmed')
+                                <form method="POST" action="{{ route('patient.cancel', $appointment) }}" class="inline">
+                                    @csrf
+                                    <button type="submit"
+                                            onclick="return confirm('Are you sure you want to cancel this appointment?')"
+                                            class="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors">
+                                        Cancel
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endforeach
