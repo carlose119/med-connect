@@ -36,12 +36,12 @@ Chain strategy: stacked-to-main
 
 ## Phase 1: Dashboard + Doctors (Slice 2 — ~300 lines)
 
-- [ ] 1.1 Write RED test: `tests/Feature/Patient/PatientDashboardTest.php` — with/without appointments
-- [ ] 1.2 Write RED test: `tests/Feature/Patient/DoctorListingTest.php` — all doctors + specialty filter
-- [ ] 1.3 Create `app/Livewire/Patient/Dashboard.php` + `resources/views/patient/dashboard.blade.php` — GREEN
-- [ ] 1.4 Create `app/Livewire/Patient/DoctorList.php` + `resources/views/patient/doctors.blade.php` with specialty filter — GREEN
-- [ ] 1.5 Create `app/Http/Controllers/Patient/ProfileController.php` + `resources/views/patient/profile.blade.php` — GREEN
-- [ ] 1.6 Run `php artisan test --filter=PatientDashboard|DoctorListing` — all green
+- [x] 1.1 Write RED test: `tests/Feature/Patient/PatientDashboardTest.php` — with/without appointments
+- [x] 1.2 Write RED test: `tests/Feature/Patient/DoctorListingTest.php` — all doctors + specialty filter
+- [x] 1.3 Create `app/Livewire/Patient/Dashboard.php` + `resources/views/patient/dashboard.blade.php` — GREEN
+- [x] 1.4 Create `app/Livewire/Patient/DoctorList.php` + `resources/views/patient/doctors.blade.php` with specialty filter — GREEN
+- [x] 1.5 Create `app/Http/Controllers/Patient/ProfileController.php` + `resources/views/patient/profile.blade.php` — GREEN
+- [x] 1.6 Run `vendor/bin/pest tests/Feature/Patient/` — all 10 GREEN (48 assertions)
 
 ## Phase 2: Booking + Cancellation (Slice 3 — ~350 lines)
 
