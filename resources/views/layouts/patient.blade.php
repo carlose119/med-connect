@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Patient Portal') - MedConnect</title>
+    <title>@yield('title', $title ?? 'Patient Portal') - MedConnect</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -35,6 +35,7 @@
     </nav>
 
     <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {{ $slot ?? '' }}
         @yield('content')
     </main>
 

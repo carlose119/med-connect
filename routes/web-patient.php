@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Patient\AuthController;
+use App\Http\Controllers\Patient\ProfileController;
+use App\Livewire\Patient\Dashboard;
+use App\Livewire\Patient\DoctorList;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('patient')->name('patient.')->group(function () {
@@ -12,9 +15,10 @@ Route::prefix('patient')->name('patient.')->group(function () {
     });
 
     Route::middleware('auth')->group(function () {
-        Route::get('dashboard', function () {
-            return view('patient.dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', Dashboard::class)->name('dashboard');
+        Route::get('doctors', DoctorList::class)->name('doctors');
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile');
+        Route::post('profile', [ProfileController::class, 'update']);
         Route::post('logout', [AuthController::class, 'destroy'])->name('logout');
     });
 });
