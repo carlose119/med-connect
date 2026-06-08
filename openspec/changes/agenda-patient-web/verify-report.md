@@ -385,3 +385,220 @@ Slice 2 (Dashboard + Doctors) is fully implemented. All 6/6 spec scenarios pass,
 1. Merge `feat/agenda-patient-web-slice-2-dashboard` into `main`
 2. Launch `sdd-apply` for Slice 3 (Booking + Cancellation — Phase 2, tasks 2.1-2.5)
 3. Branch: `feat/agenda-patient-web-slice-3-booking` off `main`
+
+---
+
+## Verify Report — Slice 3 (Booking + Cancellation)
+
+**Change**: agenda-patient-web (Slice 3 — Booking + Cancellation, FINAL SLICE)
+**Version**: N/A (continuation)
+**Mode**: Strict TDD (Pest 4.7.1)
+**Branch**: `feat/agenda-patient-web-slice-3-booking` (off `main` at `07ddf10`)
+**Date**: 2026-06-08
+
+---
+
+### Completeness
+
+| Metric | Value |
+|--------|-------|
+| Tasks total (Slice 3) | 5 |
+| Tasks complete | 5 |
+| Tasks incomplete | 0 |
+| Tasks total (all slices) | 20 |
+| Tasks complete (all slices) | 20 |
+| Tasks incomplete (all slices) | 0 |
+
+All 5 Phase 2 tasks (2.1–2.5) plus housekeeping tasks (3.1–3.2) marked `[x]` in tasks.md. No incomplete tasks across any slice.
+
+---
+
+### Build & Tests Execution
+
+**Pint (style)**: ✅ Passed — 0 violations on all slice 3 files
+
+```text
+vendor/bin/pint --test app/Livewire/Patient/BookAppointment.php \
+  app/Http/Controllers/Patient/CancelAppointmentController.php \
+  tests/Feature/Patient/AppointmentBookingTest.php \
+  tests/Feature/Patient/AppointmentCancellationTest.php \
+  resources/views/patient/book.blade.php
+→ {"tool":"pint","result":"passed"}
+```
+
+**Tests (Slice 3 — filtered)**: ✅ 4 passed, 17 new assertions
+
+```text
+vendor/bin/pest --filter AppointmentBooking
+  PASS  Tests\Feature\Patient\AppointmentBookingTest
+  ✓ it creates an appointment with status pending on the happy path      1.10s
+  ✓ it shows a slot not available error when the slot is already taken   0.17s
+  Tests:  2 passed (10 assertions)
+
+vendor/bin/pest --filter AppointmentCancellation
+  PASS  Tests\Feature\Patient\AppointmentCancellationTest
+  ✓ it cancels an appointment when inside the 24h window (+48h)         0.97s
+  ✓ it rejects cancellation when outside the 24h window (+12h)          0.09s
+  Tests:  2 passed (7 assertions)
+```
+
+**Tests (full suite)**: ✅ 186 passed, 4 skipped, 0 failures. Baseline was 182/4/678 → **no regressions**, +4 tests (+17 assertions).
+
+```text
+vendor/bin/pest
+  Tests:  4 skipped, 186 passed (695 assertions)
+  Duration: 19.25s
+```
+
+(The 4 skipped tests are the same pre-existing concurrent double-book tests that require the real DB driver — unchanged from prior slices.)
+
+**API routes**: ✅ 18 API routes intact — no modifications, no deletions
+
+```text
+php artisan route:list --path=api
+→ 18 routes (identical to Slice 2 verify)
+```
+
+**Coverage**: ➖ Not available (no coverage tool configured in this project)
+
+**Quality Metrics**:
+- **Linter (Pint)**: ✅ 0 violations on slice 3 files
+- **Type Checker**: ➖ No PHPStan/Psalm detected
+
+---
+
+### Spec Compliance Matrix
+
+| Requirement | Scenario | Test | Result |
+|-------------|----------|------|--------|
+| REQ-PW-5: Appointment Booking | Happy path — patient books a valid slot at now+3h | `AppointmentBookingTest > it creates an appointment with status pending on the happy path` | ✅ COMPLIANT |
+| REQ-PW-5: Appointment Booking | Slot already taken — race condition guard | `AppointmentBookingTest > it shows a slot not available error when the slot is already taken` | ✅ COMPLIANT |
+| REQ-PW-6: Appointment Cancellation | Cancel inside the 24h window (now+48h) | `AppointmentCancellationTest > it cancels an appointment when inside the 24h window` | ✅ COMPLIANT |
+| REQ-PW-6: Appointment Cancellation | Cancel outside the 24h window (now+12h) | `AppointmentCancellationTest > it rejects cancellation when outside the 24h window` | ✅ COMPLIANT |
+| REQ-PW-7: Existing Backend Integrity | API routes remain accessible (18 routes) | `route:list --path=api` → 18 routes unchanged | ✅ COMPLIANT |
+| REQ-PW-7: Existing Backend Integrity | Admin panel remains accessible | `route:list` shows no new admin routes, `FilamentPanelAccessTest` still passes | ✅ COMPLIANT |
+
+**Compliance summary**: 6/6 scenarios compliant (4 Slice 3 + 2 REQ-PW-7 cross-cutting)
+
+---
+
+### Correctness (Static Evidence)
+
+| Requirement | Status | Notes |
+|------------|--------|-------|
+| Booking: view doctor's available slots | ✅ Implemented | `loadSlots()` calls `DoctorAvailabilityService::slots()` for selected date |
+| Booking: slot selection + confirmation | ✅ Implemented | Livewire `$selectedSlot` → `book()` method with validation |
+| Booking: 2h anticipation check | ✅ Implemented | `$start->lt(now()->addHours(2))` returns error before proceeding |
+| Booking: patient overlap check | ✅ Implemented | `Appointment::where(...)->where('start_time', '<', $endUtc)->where('end_time', '>', $startUtc)->exists()` |
+| Booking: `lockForUpdate()` race guard | ✅ Implemented | `DB::transaction()` with `DoctorSchedule::lockForUpdate()` on line 100-114 |
+| Booking: slot no longer available error | ✅ Implemented | Pre-insert availability check against `DoctorAvailabilityService::slots()` |
+| Booking: creates appointment with status `pending` | ✅ Implemented | `Appointment::create(['state' => 'pending'])` |
+| Cancel: 24h window enforcement | ✅ Implemented | `$appointment->start_time <= now()->addHours(24)` → rejection |
+| Cancel: state transitions to `Cancelled` | ✅ Implemented | `$appointment->state->transitionTo(Cancelled::class, auth()->user())` |
+| Cancel: successful redirect with status message | ✅ Implemented | `redirect(route('patient.dashboard'))->with('status', ...)` |
+| Cancel: error redirect with validation errors | ✅ Implemented | `back()->withErrors(['cancellation' => ...])` |
+| API routes unchanged | ✅ Implemented | 18 routes verified — identical to pre-slice-3 baseline |
+| Admin panel routes unchanged | ✅ Implemented | Patient routes under `/patient/*` prefix only, no overlap with `/admin` or `/doctor` |
+
+---
+
+### Coherence (Design)
+
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| Full-page Livewire `BookAppointment` component | ✅ Yes | Extends `Component` with `#[Layout('layouts.patient')]`, `#[Title('Book Appointment')]` |
+| Route at `/patient/doctors/{doctor}/book` | ✅ Yes | `Route::get('doctors/{doctor}/book', BookAppointment::class)->name('patient.book')` |
+| `lockForUpdate()` in transaction | ✅ Yes (see note) | Wrapped in `DB::transaction()`. Lock target: `DoctorSchedule` row (design said `Appointment` rows). Both serialize access to the same doctor's bookings — functionally equivalent, slightly coarser granularity. |
+| Cancel route at `POST /patient/appointments/{appointment}/cancel` | ✅ Yes | `Route::post('appointments/{appointment}/cancel', CancelAppointmentController::class)->name('cancel')` |
+| Cancel: 24h window assertion | ✅ Yes | `$appointment->start_time <= now()->addHours(24)` — rejects at boundary, consistent with design intent |
+| Cancel: state transition via `Cancelled::class` | ✅ Yes | `$appointment->state->transitionTo(Cancelled::class, auth()->user())` with actor for audit trail |
+| Error pattern for cancel rejection | ⚠️ Deviation | Design says "409 Conflict with user-facing error" — implementation returns `back()->withErrors(...)` (302 redirect with flash error). This is correct UX for a web form (not an API endpoint). The spec does not mandate a specific HTTP status code for the web cancel response. |
+
+---
+
+### TDD Compliance (Strict TDD)
+
+| Check | Result | Details |
+|-------|--------|---------|
+| TDD Evidence reported | ✅ | Found in commit history: `5856848` RED tests, `c48f620`+`3b02a2f` GREEN implementation |
+| All tasks have tests | ✅ | 2 task-2.x tasks with test files (Booking + Cancellation); 3 remaining tasks are implementation/verify |
+| RED confirmed (tests exist) | ✅ | 2/2 test files verified in codebase |
+| GREEN confirmed (tests pass) | ✅ | 4/4 tests pass on execution (17 assertions) |
+| Triangulation adequate | ✅ | Booking: 2 cases (happy + race condition). Cancellation: 2 cases (inside + outside window). Covers all spec scenarios. |
+| Safety Net for modified files | ➖ | `routes/web-patient.php` modified (4 lines added for cancel route) — additive modification, no pre-existing tests cover this file |
+
+**TDD Compliance**: 5/5 checks passed
+
+---
+
+### Test Layer Distribution
+
+| Layer | Tests | Files | Tools |
+|-------|-------|-------|-------|
+| Feature | 4 | 2 | Pest 4.7.1 (RefreshDatabase trait, Livewire testing) |
+| Integration | 0 | 0 | — |
+| E2E | 0 | 0 | — |
+| **Total** | **4** | **2** | |
+
+All tests are Feature-layer tests using Livewire `$this->actingAs()` and `Livewire::test()`. The `AppointmentBookingTest` uses Livewire component testing — appropriate for the Livewire booking flow. `AppointmentCancellationTest` uses standard HTTP `$this->post()` — appropriate for the controller-invokable cancel endpoint. No unit tests needed; the domain logic (24h window, state machine) is already covered by existing unit tests in `AppointmentStateTest` and `CancelAppointmentTest`.
+
+---
+
+### Assertion Quality
+
+| File | Line | Assertion | Issue | Severity |
+|------|------|-----------|-------|----------|
+| — | — | — | — | — |
+
+**Assertion quality**: ✅ All assertions verify real behavior
+
+Full audit results:
+- `AppointmentBookingTest` (10 assertions): All verify behavioral outcomes — slots loaded, slot available check, redirect on success, DB record created with correct state, race condition error on stale data
+- `AppointmentCancellationTest` (7 assertions): All verify behavioral outcomes — redirect with status on success, state changed to `Cancelled`, error on outside-window, state remains `Pending`
+- No tautologies (`expect(true).toBe(true)`)
+- No ghost loops — `collect($slots)->contains(fn ...)` is a linear search, not a loop over possibly-empty collection (it has preconditions)
+- No smoke-only tests
+- No implementation-detail coupling (CSS classes, mock call counts)
+- No type-only assertions used without companion value assertions
+- `expect($appointment)->not->toBeNull()` in BookingTest (line 74) is followed by `expect($appointment->state)->toBeInstanceOf(Pending::class)` (line 75) — valid guard
+- `expect($slots)->toBeArray()` (line 57) is followed by `->not->toBeEmpty()` (line 58) — valid pair
+- Mock/assertion ratio: **0 mocks, 17 assertions** — zero mocks is correct for feature tests
+
+---
+
+### Changed File Coverage
+
+**Coverage analysis skipped** — no coverage tool detected in this project (no phpunit coverage config or Xdebug coverage mode enabled).
+
+---
+
+### Issues Found
+
+**CRITICAL**: None
+
+**WARNING**:
+1. **Lock target differs from design** — The design specified `Appointment::lockForUpdate()` for the booking race condition guard. The implementation uses `DoctorSchedule::lockForUpdate()` instead. Both serialize access for the same doctor's bookings and prevent double-booking, but the implementation's lock is slightly coarser (locks the entire day's schedule row rather than just the specific slot). No spec is broken — the behavior (no double-booking) is correctly enforced.
+
+2. **Cancel rejection uses redirect+flash instead of 409** — The design document states cancelled-outside-window requests should return "409 Conflict with a user-facing error message." The implementation returns `back()->withErrors([...])` (a 302 redirect with flash session errors). This is correct and appropriate UX for a web form-based controller (not an API endpoint) but deviates from the design document's description. No spec is broken — the spec only requires "the cancellation is rejected and the system shows an error."
+
+**SUGGESTION**: None
+
+---
+
+### Verdict
+
+**PASS WITH WARNINGS**
+
+Slice 3 (Booking + Cancellation — FINAL SLICE) is fully implemented. All 4/4 slice-specific spec scenarios pass (happy booking, race condition, inside-window cancel, outside-window reject), both REQ-PW-7 cross-cutting checks pass (18 API routes untouched, admin panel unaffected). All 4 slice 3 tests GREEN (17 assertions). Full suite at 186/4/695 — no regressions from baseline 182/4/678.
+
+Two minor design deviations found (lock target, cancel error format) — neither breaks any spec requirement.
+
+**Final project totals**: 20/20 tasks complete, 14 feature tests, 695 total assertions, 186 passing tests, 0 regressions across all 3 slices.
+
+---
+
+### Next Steps
+
+1. Merge `feat/agenda-patient-web-slice-3-booking` into `main`
+2. Run `sdd-archive` to sync delta specs into main specs and archive the change folder
+3. No remaining slices — this completes the full **agenda-patient-web** change
