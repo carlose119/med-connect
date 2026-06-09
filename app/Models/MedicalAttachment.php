@@ -23,6 +23,13 @@ class MedicalAttachment extends Model
 
     public $timestamps = false;
 
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+        ];
+    }
+
     public function medicalNote(): BelongsTo
     {
         return $this->belongsTo(MedicalNote::class);
