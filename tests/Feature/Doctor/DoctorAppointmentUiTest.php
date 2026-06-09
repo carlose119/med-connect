@@ -86,7 +86,7 @@ test('confirm action NOT visible for confirmed appointments', function () {
         ->assertSee('No Show');
 });
 
-test('cancel action changes state and stores reason', function () {
+test('cancel action via Livewire stores reason and transitions', function () {
     $user = User::factory()->doctor()->create();
     $doctor = Doctor::factory()->for($user)->create();
     $patient = Patient::factory()->create();
@@ -96,12 +96,15 @@ test('cancel action changes state and stores reason', function () {
         'start_time' => CarbonImmutable::now()->addDay(),
     ]);
 
-    $appointment->cancellation_reason = 'Patient requested cancellation';
-    $appointment->state->transitionTo(Cancelled::class, $user);
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->callTableAction('cancel', $appointment, [
+            'cancellation_reason' => 'Patient requested via Livewire',
+        ]);
 
     $appointment->refresh();
-    expect($appointment->state::$name)->toBe('cancelled');
-    expect($appointment->cancellation_reason)->toBe('Patient requested cancellation');
+    expect($appointment->state::class)->toBe(Cancelled::class);
+    expect($appointment->cancellation_reason)->toBe('Patient requested via Livewire');
 });
 
 test('non-doctor cannot access appointments page', function () {
@@ -110,4 +113,150 @@ test('non-doctor cannot access appointments page', function () {
     $this->actingAs($patientUser)
         ->get('/doctor/appointments')
         ->assertForbidden();
+});
+
+test('confirm action transitions to confirmed', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+
+    $appointment = Appointment::factory()->for($doctor)->for($patient)->create([
+        'state' => 'pending',
+        'start_time' => CarbonImmutable::now()->addDay(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->callTableAction('confirm', $appointment);
+
+    $appointment->refresh();
+    expect($appointment->state::class)->toBe(Confirmed::class);
+});
+
+test('complete action transitions confirmed to completed', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+
+    $appointment = Appointment::factory()->for($doctor)->for($patient)->create([
+        'state' => 'confirmed',
+        'start_time' => CarbonImmutable::now()->addDay(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->callTableAction('complete', $appointment);
+
+    $appointment->refresh();
+    expect($appointment->state::class)->toBe(Completed::class);
+});
+
+test('no show action transitions confirmed to no show', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+
+    $appointment = Appointment::factory()->for($doctor)->for($patient)->create([
+        'state' => 'confirmed',
+        'start_time' => CarbonImmutable::now()->addDay(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->callTableAction('no_show', $appointment);
+
+    $appointment->refresh();
+    expect($appointment->state::class)->toBe(NoShow::class);
+});
+
+test('cancel action hidden for terminal states', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+    $base = CarbonImmutable::now()->addDay();
+
+    $completed = Appointment::factory()->for($doctor)->for($patient)->completed()->create([
+        'start_time' => $base,
+    ]);
+    $cancelled = Appointment::factory()->for($doctor)->for($patient)->cancelled()->create([
+        'start_time' => $base->addHour(),
+    ]);
+    $noShow = Appointment::factory()->for($doctor)->for($patient)->noShow()->create([
+        'start_time' => $base->addHours(2),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->assertTableActionHidden('cancel', $completed)
+        ->assertTableActionHidden('cancel', $cancelled)
+        ->assertTableActionHidden('cancel', $noShow);
+});
+
+test('no show action hidden for non confirmed states', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+    $base = CarbonImmutable::now()->addDay();
+
+    $pending = Appointment::factory()->for($doctor)->for($patient)->pending()->create([
+        'start_time' => $base,
+    ]);
+    $completed = Appointment::factory()->for($doctor)->for($patient)->completed()->create([
+        'start_time' => $base->addHour(),
+    ]);
+    $cancelled = Appointment::factory()->for($doctor)->for($patient)->cancelled()->create([
+        'start_time' => $base->addHours(2),
+    ]);
+    $noShow = Appointment::factory()->for($doctor)->for($patient)->noShow()->create([
+        'start_time' => $base->addHours(3),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->assertTableActionHidden('no_show', $pending)
+        ->assertTableActionHidden('no_show', $completed)
+        ->assertTableActionHidden('no_show', $cancelled)
+        ->assertTableActionHidden('no_show', $noShow);
+});
+
+test('date filter today shows only todays appointments', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+
+    $today = CarbonImmutable::now()->startOfDay()->addHours(10);
+    $tomorrow = CarbonImmutable::now()->addDay()->startOfDay()->addHours(10);
+
+    Appointment::factory()->for($doctor)->for($patient)->create([
+        'start_time' => $today,
+    ]);
+    Appointment::factory()->for($doctor)->for($patient)->create([
+        'start_time' => $tomorrow,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->set('tableFilters.date_range.value', 'today')
+        ->assertCountTableRecords(1);
+});
+
+test('date filter past shows only past appointments', function () {
+    $user = User::factory()->doctor()->create();
+    $doctor = Doctor::factory()->for($user)->create();
+    $patient = Patient::factory()->create();
+
+    $yesterday = CarbonImmutable::now()->subDay()->startOfDay()->addHours(10);
+    $tomorrow = CarbonImmutable::now()->addDay()->startOfDay()->addHours(10);
+
+    Appointment::factory()->for($doctor)->for($patient)->create([
+        'start_time' => $yesterday,
+    ]);
+    Appointment::factory()->for($doctor)->for($patient)->create([
+        'start_time' => $tomorrow,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ListDoctorAppointments::class)
+        ->set('tableFilters.date_range.value', 'past')
+        ->assertCountTableRecords(1);
 });
