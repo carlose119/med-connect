@@ -20,6 +20,23 @@ class MedicalNote extends Model
     /** @use HasFactory<MedicalNoteFactory> */
     use HasFactory;
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::saving(static function (MedicalNote $note): void {
+            // Allow create (model does not exist yet), reject update
+            // (model already exists — append-only contract).
+            if ($note->exists) {
+                throw new \LogicException('Medical notes are append-only. Update is not permitted.');
+            }
+        });
+
+        static::deleting(static function (MedicalNote $note): void {
+            throw new \LogicException('Medical notes are append-only. Delete is not permitted.');
+        });
+    }
+
     protected $fillable = [
         'medical_history_id',
         'appointment_id',

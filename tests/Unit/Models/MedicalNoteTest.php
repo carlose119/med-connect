@@ -48,7 +48,7 @@ it('throws LogicException when attempting to delete a persisted note', function 
     $fresh->delete();
 })->throws(\LogicException::class);
 
-it('allows creating a new note', function (): void {
+it('allows creating a new note with basic fields', function (): void {
     $note = MedicalNote::create([
         'medical_history_id' => $this->history->id,
         'doctor_id' => $this->doctor->id,
@@ -57,4 +57,34 @@ it('allows creating a new note', function (): void {
 
     expect($note)->toBeInstanceOf(MedicalNote::class)
         ->and($note->exists)->toBeTrue();
+});
+
+it('allows creating a new note with all fields', function (): void {
+    $note = MedicalNote::create([
+        'medical_history_id' => $this->history->id,
+        'doctor_id' => $this->doctor->id,
+        'symptoms' => 'Headache and fever',
+        'physical_exam' => 'Temperature 38.5°C',
+        'diagnosis' => 'Common cold',
+        'treatment_notes' => 'Rest and hydration',
+    ]);
+
+    expect($note)->toBeInstanceOf(MedicalNote::class)
+        ->and($note->exists)->toBeTrue()
+        ->and($note->symptoms)->toBe('Headache and fever')
+        ->and($note->physical_exam)->toBe('Temperature 38.5°C')
+        ->and($note->diagnosis)->toBe('Common cold')
+        ->and($note->treatment_notes)->toBe('Rest and hydration');
+});
+
+it('allows building and saving an unsaved model', function (): void {
+    $note = new MedicalNote([
+        'medical_history_id' => $this->history->id,
+        'doctor_id' => $this->doctor->id,
+        'diagnosis' => 'Unsaved diagnosis',
+    ]);
+
+    $note->save();
+
+    expect($note->exists)->toBeTrue();
 });
