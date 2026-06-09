@@ -301,7 +301,7 @@ immediately with the password the admin typed in.
 ### Run the PR 5 test slice
 
 ```bash
-# All 136+4 cases on SQLite (default), 140 on MariaDB
+# All 199+4 cases on SQLite (default), 203 on MariaDB
 vendor/bin/pest
 
 # Just the panel-access matrix
@@ -336,8 +336,8 @@ vendor/bin/pest --filter=FilamentPanelAccessTest
 
 ### SDD state
 
-- 13 capabilities, 34 reqs, 138 scenarios, 18 routes (per obs #98)
-- 9 archived changes; 0 active changes (only `archive/` directory under `openspec/changes/`)
+- 17 capabilities, 52 reqs, ~186 scenarios, 18 routes
+- 14 archived changes; 0 active changes (only `archive/` directory under `openspec/changes/`)
 
 ### Roadmap
 
@@ -350,6 +350,9 @@ vendor/bin/pest --filter=FilamentPanelAccessTest
 - [x] `agenda-readme-cleanup` — 5 cosmetic README drifts
 - [x] `env-section-overhaul` — 3 env-section drifts (PHP, parenthetical, greenfield)
 - [x] `agenda-prd-update` — 3 AGENTS.md drifts (PHP, Pest, unique partial index)
+- [x] `agenda-rbac-advanced` — Shield roles, RoleResource, additive policies (3 slices)
+- [x] `agenda-patient-web` — Blade + Livewire patient portal (3 slices)
+- [x] `agenda-doctor-ui` — Doctor AppointmentResource with state machine actions
 
 ## Environment
 
