@@ -50,6 +50,13 @@ class MedicalNote extends Model
 
     public $timestamps = false;
 
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+        ];
+    }
+
     public function medicalHistory(): BelongsTo
     {
         return $this->belongsTo(MedicalHistory::class);
