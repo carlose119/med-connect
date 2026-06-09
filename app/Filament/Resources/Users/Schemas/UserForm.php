@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\Specialty;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -58,6 +59,9 @@ class UserForm
                     ->required()
                     ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('role') === 'doctor')
                     ->dehydrated(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('role') === 'doctor'),
+                Checkbox::make('is_super_admin')
+                    ->label('Super Admin (Shield)')
+                    ->visible(fn (string $operation): bool => $operation === 'edit'),
             ]);
     }
 }
