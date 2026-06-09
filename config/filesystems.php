@@ -47,6 +47,15 @@ return [
             'report' => false,
         ],
 
+        'clinical_attachments' => [
+            'driver' => env('FILESYSTEM_CLINICAL_ATTACHMENTS', 'local'),
+            'root' => storage_path('app/clinical-attachments'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/clinical-attachments',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

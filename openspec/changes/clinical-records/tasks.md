@@ -53,9 +53,9 @@ Chain strategy: pending
 
 ## Phase 5: Attachments (PR 2)
 
-- [ ] 5.1 Add `clinical_attachments` disk to `config/filesystems.php` (env-driven, falls back to local)
-- [ ] 5.2 Create `UploadMedicalAttachmentRequest` — mimes validation, max 10MB
-- [ ] 5.3 Create `MedicalAttachmentResource` — id, note_id, filename, mime, size, url, created_at
-- [ ] 5.4 Create `MedicalAttachmentController` — upload (POST), list-by-note (GET), delete (DELETE)
-- [ ] 5.5 Add attachment routes to `routes/api.php` (nested under notes)
-- [ ] 5.6 Integration: upload (201, max size, mime), delete (200 uploader, 403 other user)
+- [x] 5.1 Add `clinical_attachments` disk to `config/filesystems.php` (env-driven, falls back to local)
+- [x] 5.2 Create `UploadMedicalAttachmentRequest` — mimes validation, max 10MB
+- [x] 5.3 Create `MedicalAttachmentResource` — id, note_id, filename, mime, size, url, created_at
+- [x] 5.4 Create `MedicalAttachmentController` — upload (POST), list-by-note (GET), delete (DELETE)
+- [x] 5.5 Add attachment routes to `routes/api.php` (nested under notes)
+- [x] 5.6 Integration: upload (201, max size, mime), delete (200 uploader, 403 other user)

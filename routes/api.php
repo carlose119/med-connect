@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AppointmentTransitionController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DoctorController;
+use App\Http\Controllers\Api\MedicalAttachmentController;
 use App\Http\Controllers\Api\MedicalHistoryController;
 use App\Http\Controllers\Api\MedicalNoteController;
 use App\Http\Controllers\Api\PatientController;
@@ -69,6 +70,9 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::post('/medical-histories/{medical_history}/notes', [MedicalNoteController::class, 'store']);
     Route::get('/medical-notes/{medical_note}', [MedicalNoteController::class, 'show']);
     Route::post('/medical-notes/{medical_note}/amend', [MedicalNoteController::class, 'amend']);
+    Route::post('/medical-notes/{medical_note}/attachments', [MedicalAttachmentController::class, 'upload']);
+    Route::get('/medical-notes/{medical_note}/attachments', [MedicalAttachmentController::class, 'index']);
+    Route::delete('/medical-attachments/{medical_attachment}', [MedicalAttachmentController::class, 'destroy']);
     Route::get('/prescriptions', [PrescriptionController::class, 'index']);
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });
