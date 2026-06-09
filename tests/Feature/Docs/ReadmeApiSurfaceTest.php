@@ -77,23 +77,23 @@ it('README line 71 has correct migration count breakdown (13 from PR 1+2)', func
     expect($lines[70])->toContain('13 from PR 1+2');
 });
 
-it('README line 304 has updated PR 5 test count (136+4 SQLite, 140 MariaDB)', function () {
+it('README line 304 has updated PR 5 test count (199+4 SQLite, 203 MariaDB)', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
     // 1-indexed line 304 = 0-indexed $lines[303].
-    expect($lines[303])->toContain('136+4 cases on SQLite (default), 140 on MariaDB');
+    expect($lines[303])->toContain('199+4 cases on SQLite (default), 203 on MariaDB');
 });
 
 it('README lines 314 and 349 use aligned Node 20.16+ wording', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
     // 1-indexed line 314 = 0-indexed $lines[313] (unchanged: before line 323).
-    // 1-indexed line 349 shifts to $lines[357] after the +9 line shift from the
-    // 21→30 line refactor of the ## Status section (agenda-readme-revamp cycle).
+    // 1-indexed line 361 shifts to $lines[361] after the +12 line shift from the
+    // Status section expansion (agenda-readme-revamp + cycle 14 roadmap entries).
     // Spec scenario 3 (REQ-README-CLEANUP-1) requires the aligned wording
     // `Node 20.16+ (prints warning, build succeeds)` in both.
     expect($lines[313])->toContain('Node 20.16+ (prints warning, build succeeds)');
-    expect($lines[357])->toContain('Node 20.16+ (prints warning, build succeeds)');
+    expect($lines[360])->toContain('Node 20.16+ (prints warning, build succeeds)');
 });
 
 it('README lines 283 and 464 use the med-connect.test email domain', function () {
@@ -102,21 +102,21 @@ it('README lines 283 and 464 use the med-connect.test email domain', function ()
     // 1-indexed line 283 = 0-indexed $lines[282] (unchanged: before line 323).
     // 1-indexed line 464 (originally $lines[463] in the spec/proposal) shifted to
     // $lines[464] when the agenda-readme-cleanup endpoint table edit added 1 row,
-    // and now shifts to $lines[473] after the +9 line shift from the
-    // 21→30 line refactor of the ## Status section (agenda-readme-revamp cycle).
+    // shifted to $lines[473] after the +9 revamp shift, and now to $lines[477]
+    // after the +12 cumulative Status section expansion.
     // The spec scenario 4 (REQ-README-CLEANUP-1) intent — both lines must contain
     // `med-connect.test` (matches database/seeders/DatabaseSeeder.php lines 29,
     // 47, 81) — is preserved.
     expect($lines[282])->toContain('med-connect.test');
-    expect($lines[473])->toContain('med-connect.test');
+    expect($lines[476])->toContain('med-connect.test');
 });
 
 it('README route count is 18 and endpoint table lists GET /api/doctors/{doctor}', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
-    // 1-indexed line 360 shifts to $lines[368] after the +9 line shift from the
-    // 21→30 line refactor of the ## Status section (agenda-readme-revamp cycle).
-    expect($lines[368])->toContain('18 routes');
+    // 1-indexed line 360 shifts to $lines[371] after the cumulative +12 line
+    // shift from the Status section expansion (revamp + cycle 14 roadmap entries).
+    expect($lines[371])->toContain('18 routes');
 
     // Endpoint table has 18 rows numbered 1..18. The PR-status table at
     // lines 331-335 has no `/api/` paths, so anchoring on the
@@ -157,19 +157,20 @@ it('README line 8 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)', fun
 it('README line 347 has correct Environment PHP claim and env section omits PHP 8.4 features', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
-    // 1-indexed line 347 shifts to $lines[355] after the +9 line shift from the
-    // 21→30 line refactor of the ## Status section (agenda-readme-revamp cycle).
+    // 1-indexed line 347 shifts to $lines[358] after the cumulative +12 line
+    // shift from the Status section expansion (revamp + cycle 14 roadmap entries).
     // Spec scenario 2 (REQ-ENV-SECTION-OVERHAUL-1) requires the env section to
     // claim `PHP 8.3+ (per composer.json)` (not the stale
     // `PHP 8.4+ (the project pins to features available in 8.4 ...)` claim).
-    expect($lines[355])->toContain('PHP 8.3+ (per composer.json)');
+    expect($lines[358])->toContain('PHP 8.3+ (per composer.json)');
 
     // Negative assertion (defense-in-depth): the env section (a 20-line window
     // around line 347) MUST NOT contain the factually-wrong phraseology that
     // claims PHP 8.4 features are used. Verified 0 matches for `property hooks`
     // and `asymmetric visibility` in app/ (per proposal §"What changes" drift 2).
-    // The window start index shifts from 340 to 349 to track the +9 line shift.
-    $envSection = implode("\n", array_slice($lines, 349, 20));
+    // The window start index shifts from 340 to 356 to track the +12 line shift
+    // plus the Roadmap expansion. The env heading is now at 0-indexed 356.
+    $envSection = implode("\n", array_slice($lines, 356, 20));
     expect($envSection)->not->toContain('property hooks');
     expect($envSection)->not->toContain('asymmetric visibility');
 });
@@ -177,8 +178,8 @@ it('README line 347 has correct Environment PHP claim and env section omits PHP 
 it('README line 350 omits the stale greenfield phraseology', function () {
     $lines = file(base_path('README.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read README.md');
-    // 1-indexed line 350 shifts to $lines[358] after the +9 line shift from the
-    // 21→30 line refactor of the ## Status section (agenda-readme-revamp cycle).
+    // 1-indexed line 350 shifts to $lines[358] after the cumulative +12 line
+    // shift from the Status section expansion (revamp + cycle 14 roadmap entries).
     // The previous anchor ($lines[349]) silently tested a roadmap bullet, which
     // did not contain the greenfield phrase and thus passed by accident. The
     // TEST-FIX restores the actual env-section assertion. Spec scenario 3
