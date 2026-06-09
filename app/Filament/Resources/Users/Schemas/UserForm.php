@@ -6,6 +6,7 @@ use App\Models\Specialty;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class UserForm
@@ -50,15 +51,15 @@ class UserForm
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('role') === 'doctor')
-                    ->dehydrated(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('role') === 'doctor')
+                    ->visible(fn (Get $get): bool => $get('role') === 'doctor')
+                    ->dehydrated(fn (Get $get): bool => $get('role') === 'doctor')
                     ->native(false),
                 TextInput::make('license_number')
                     ->label('License number')
                     ->maxLength(255)
                     ->required()
-                    ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('role') === 'doctor')
-                    ->dehydrated(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('role') === 'doctor'),
+                    ->visible(fn (Get $get): bool => $get('role') === 'doctor')
+                    ->dehydrated(fn (Get $get): bool => $get('role') === 'doctor'),
                 Checkbox::make('is_super_admin')
                     ->label('Super Admin (Shield)')
                     ->visible(fn (string $operation): bool => $operation === 'edit'),

@@ -12,13 +12,12 @@ uses(RefreshDatabase::class, CreatesPatients::class);
  *
  * RED at this commit: the route doesn't exist. Both scenarios fail.
  */
-
 it('returns only the active specialties', function (): void {
     Specialty::create(['name' => 'Cardiology', 'slug' => 'cardiology', 'is_active' => true]);
     Specialty::create(['name' => 'Dermatology', 'slug' => 'dermatology', 'is_active' => true]);
     Specialty::create(['name' => 'Discontinued', 'slug' => 'discontinued', 'is_active' => false]);
 
-    [$patient, , ] = $this->createPatientWithToken();
+    [$patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($patient, 'sanctum')
         ->getJson('/api/specialties');
@@ -35,7 +34,7 @@ it('returns only the active specialties', function (): void {
 it('returns the resource shape with id, name, slug, is_active', function (): void {
     Specialty::create(['name' => 'Cardiology', 'slug' => 'cardiology', 'is_active' => true]);
 
-    [$patient, , ] = $this->createPatientWithToken();
+    [$patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($patient, 'sanctum')
         ->getJson('/api/specialties');

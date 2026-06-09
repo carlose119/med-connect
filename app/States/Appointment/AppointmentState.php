@@ -2,11 +2,7 @@
 
 namespace App\States\Appointment;
 
-use App\States\Appointment\Cancelled;
-use App\States\Appointment\Completed;
-use App\States\Appointment\Confirmed;
-use App\States\Appointment\NoShow;
-use App\States\Appointment\Pending;
+use App\Exceptions\Domain\InvalidStateTransitionException;
 use App\States\Transitions\CancelAppointmentTransition;
 use App\States\Transitions\CompleteAppointmentTransition;
 use App\States\Transitions\ConfirmAppointmentTransition;
@@ -56,7 +52,7 @@ abstract class AppointmentState extends State
         try {
             return parent::transitionTo($newState, ...$transitionArgs);
         } catch (TransitionNotFound $e) {
-            throw new \App\Exceptions\Domain\InvalidStateTransitionException(
+            throw new InvalidStateTransitionException(
                 $e->getMessage(),
                 previous: $e,
             );

@@ -21,9 +21,8 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - other patient → 403 FORBIDDEN
  *   - assigned doctor → 200
  */
-
 beforeEach(function (): void {
-    [$this->patientUser, $this->patient, ] = $this->createPatientWithToken();
+    [$this->patientUser, $this->patient] = $this->createPatientWithToken();
     $this->history = MedicalHistory::factory()->for($this->patient)->create();
 });
 
@@ -37,7 +36,7 @@ it('returns 200 for the patient who owns the medical history', function (): void
 });
 
 it('returns 403 FORBIDDEN for a different patient', function (): void {
-    [$otherUser, , ] = $this->createPatientWithToken();
+    [$otherUser] = $this->createPatientWithToken();
 
     $response = $this->actingAs($otherUser, 'sanctum')
         ->getJson("/api/medical-histories/{$this->history->id}");
@@ -47,7 +46,7 @@ it('returns 403 FORBIDDEN for a different patient', function (): void {
 });
 
 it('returns 200 for the assigned doctor (has appointment with the patient)', function (): void {
-    [$doctorUser, $doctor, ] = $this->createDoctorWithToken();
+    [$doctorUser, $doctor] = $this->createDoctorWithToken();
 
     Appointment::factory()
         ->for($doctor)

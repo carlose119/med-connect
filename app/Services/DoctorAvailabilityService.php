@@ -7,6 +7,7 @@ use App\Models\DoctorSchedule;
 use App\Models\DoctorScheduleOverride;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
  * Pure slot generator. Given a doctor, a target date, and an optional
@@ -91,6 +92,7 @@ class DoctorAvailabilityService
                         return true;
                     }
                 }
+
                 return false;
             })->values();
         }
@@ -130,16 +132,17 @@ class DoctorAvailabilityService
                 foreach ($booked as $appt) {
                     $apptStart = $appt->start_time instanceof CarbonInterface
                         ? $appt->start_time->copy()
-                        : \Illuminate\Support\Carbon::parse($appt->start_time);
+                        : Carbon::parse($appt->start_time);
                     $apptEnd = $appt->end_time instanceof CarbonInterface
                         ? $appt->end_time->copy()
-                        : \Illuminate\Support\Carbon::parse($appt->end_time);
+                        : Carbon::parse($appt->end_time);
 
                     // Slot [start, end) overlaps appointment [start, end).
                     if ($slot['start']->lt($apptEnd) && $apptStart->lt($slot['end'])) {
                         return true;
                     }
                 }
+
                 return false;
             })->values();
         }

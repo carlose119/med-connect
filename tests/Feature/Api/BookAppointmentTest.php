@@ -1,7 +1,10 @@
 <?php
 
 use App\Models\Appointment;
+use App\Models\User;
+use App\Services\DoctorAvailabilityService;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesDoctors;
 use Tests\Support\CreatesPatients;
@@ -22,12 +25,11 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  * BookAppointmentRequest + AppointmentResource + the route), all 4
  * scenarios must pass.
  */
-
 beforeEach(function (): void {
     // Create a doctor + a published schedule for "now + 3 days at 10:00".
     // The 3-day buffer guarantees the anticipation check (2h minimum)
     // passes trivially.
-    [$this->doctorUser, $this->doctor, ] = $this->createDoctorWithToken(
+    [$this->doctorUser, $this->doctor] = $this->createDoctorWithToken(
         CarbonImmutable::now()->addDays(3),
     );
 
@@ -39,7 +41,7 @@ beforeEach(function (): void {
 });
 
 it('returns 201 with the appointment resource on the happy path', function (): void {
-    [$user, $patient, ] = $this->createPatientWithToken();
+    [$user, $patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/appointments', [
@@ -61,7 +63,7 @@ it('returns 201 with the appointment resource on the happy path', function (): v
 });
 
 it('returns 422 VALIDATION_ERROR when doctor_id does not exist', function (): void {
-    [$user, , ] = $this->createPatientWithToken();
+    [$user] = $this->createPatientWithToken();
 
     $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/appointments', [
@@ -83,7 +85,7 @@ it('returns 409 SLOT_NOT_AVAILABLE when the slot is already booked', function ()
     // blocks the slot. The patient actor is the "self-service" path
     // so the controller resolves patient_id from $user->patient->id
     // without needing a `patient_id` in the body.
-    [$firstUser, , ] = $this->createPatientWithToken();
+    [$firstUser] = $this->createPatientWithToken();
     $this->actingAs($firstUser, 'sanctum')
         ->postJson('/api/appointments', [
             'doctor_id' => $this->doctor->id,
@@ -92,7 +94,7 @@ it('returns 409 SLOT_NOT_AVAILABLE when the slot is already booked', function ()
 
     // Second booking (different patient, same slot) must collide via
     // the slot-lookup guard in BookAppointmentAction.
-    [$user, , ] = $this->createPatientWithToken();
+    [$user] = $this->createPatientWithToken();
 
     $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/appointments', [
@@ -105,7 +107,7 @@ it('returns 409 SLOT_NOT_AVAILABLE when the slot is already booked', function ()
 });
 
 it('returns 422 ANTICIPATION_WINDOW_VIOLATION when start_time is inside the 2h window', function (): void {
-    [$user, , ] = $this->createPatientWithToken();
+    [$user] = $this->createPatientWithToken();
 
     // The action's 2nd guard is defense-in-depth: the slot service
     // already filters out slots inside the 2h window, so a request
@@ -117,11 +119,11 @@ it('returns 422 ANTICIPATION_WINDOW_VIOLATION when start_time is inside the 2h w
     $nearFuture = CarbonImmutable::now()->addMinutes(90)->startOfMinute();
     $nearFutureUtc = $nearFuture->copy()->setTimezone('UTC');
 
-    $fakeService = new class($nearFutureUtc) extends \App\Services\DoctorAvailabilityService
+    $fakeService = new class($nearFutureUtc) extends DoctorAvailabilityService
     {
-        public function __construct(private readonly \Carbon\CarbonInterface $slot) {}
+        public function __construct(private readonly CarbonInterface $slot) {}
 
-        public function slots(int $doctorId, \Carbon\CarbonInterface $date, ?string $tz = null): array
+        public function slots(int $doctorId, CarbonInterface $date, ?string $tz = null): array
         {
             return [[
                 'start' => $this->slot->copy()->toImmutable(),
@@ -130,7 +132,7 @@ it('returns 422 ANTICIPATION_WINDOW_VIOLATION when start_time is inside the 2h w
         }
     };
 
-    app()->instance(\App\Services\DoctorAvailabilityService::class, $fakeService);
+    app()->instance(DoctorAvailabilityService::class, $fakeService);
 
     $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/appointments', [
@@ -160,7 +162,7 @@ it('returns 422 ANTICIPATION_WINDOW_VIOLATION when start_time is inside the 2h w
  * assert 403 FORBIDDEN for admin and doctor actors.
  */
 it('interprets the write body in the resolved TZ and stores UTC', function (): void {
-    [$user, $patient, ] = $this->createPatientWithToken();
+    [$user, $patient] = $this->createPatientWithToken();
 
     // Wire body: 07:00 AR (-03:00) on the target day, ?tz=AR.
     // The default schedule is 09:00-12:00 in app.timezone (UTC);
@@ -195,7 +197,7 @@ it('interprets the write body in the resolved TZ and stores UTC', function (): v
 });
 
 it('returns 403 FORBIDDEN for a non-patient actor (admin)', function (): void {
-    $admin = \App\Models\User::factory()->admin()->create();
+    $admin = User::factory()->admin()->create();
 
     $response = $this->actingAs($admin, 'sanctum')
         ->postJson('/api/appointments', [
@@ -210,7 +212,7 @@ it('returns 403 FORBIDDEN for a non-patient actor (admin)', function (): void {
 it('returns 403 FORBIDDEN for a non-patient actor (doctor)', function (): void {
     // A SECOND doctor (not the doctor whose slot we're booking)
     // so the actor is unambiguously a doctor, not the patient.
-    [, $otherDoctor, ] = $this->createDoctorWithToken();
+    [, $otherDoctor] = $this->createDoctorWithToken();
 
     $response = $this->actingAs($otherDoctor->user, 'sanctum')
         ->postJson('/api/appointments', [

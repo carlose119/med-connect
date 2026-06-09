@@ -30,7 +30,6 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - no-show: assigned doctor OR admin. Patients get
  *     UnauthorizedActorException → 403 UNAUTHORIZED_ACTOR.
  */
-
 dataset('transitions', [
     'confirm' => 'confirm',
     'complete' => 'complete',
@@ -40,8 +39,8 @@ dataset('transitions', [
 it('lets the assigned doctor transition the appointment (happy path)', function (string $action): void {
     // Build a doctor + a patient + an appointment in the source state
     // required for the action.
-    [$doctorUser, $doctor, ] = $this->createDoctorWithToken();
-    [, $patient, ] = $this->createPatientWithToken();
+    [$doctorUser, $doctor] = $this->createDoctorWithToken();
+    [, $patient] = $this->createPatientWithToken();
 
     $start = CarbonImmutable::now()->addDays(2)->setTime(10, 0);
 
@@ -79,8 +78,8 @@ it('lets the assigned doctor transition the appointment (happy path)', function 
 })->with('transitions');
 
 it('rejects a patient attempting the transition with UNAUTHORIZED_ACTOR', function (string $action): void {
-    [, $doctor, ] = $this->createDoctorWithToken();
-    [$patientUser, $patient, ] = $this->createPatientWithToken();
+    [, $doctor] = $this->createDoctorWithToken();
+    [$patientUser, $patient] = $this->createPatientWithToken();
 
     $start = CarbonImmutable::now()->addDays(2)->setTime(10, 0);
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\Api\UserResource;
+use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,10 +55,10 @@ class AuthController extends Controller
         ];
 
         if (! Auth::guard('web')->attempt($credentials)) {
-            throw new AuthenticationException();
+            throw new AuthenticationException;
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::guard('web')->user();
 
         // `device_name` is optional; default to a generic label so

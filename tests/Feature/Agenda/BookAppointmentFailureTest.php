@@ -7,7 +7,10 @@ use App\Exceptions\Domain\SlotNotAvailableException;
 use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\DoctorSchedule;
+use App\Models\Patient;
 use App\Models\User;
+use App\Services\DoctorAvailabilityService;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -17,7 +20,7 @@ beforeEach(function () {
     $this->doctor = Doctor::factory()->for($this->doctorUser)->create();
 
     $this->patientUser = User::factory()->patient()->create();
-    $this->patient = \App\Models\Patient::factory()->for($this->patientUser)->create();
+    $this->patient = Patient::factory()->for($this->patientUser)->create();
 });
 
 /**
@@ -76,11 +79,11 @@ it('rejects a booking inside the 2h anticipación window with AnticipationWindow
     // Subclass the real service and override `slots()` to return the
     // requested slot even though it is inside the 2h window. This
     // exercises the action's 2nd guard (defense-in-depth) in isolation.
-    $fake = new class($startUtc) extends \App\Services\DoctorAvailabilityService
+    $fake = new class($startUtc) extends DoctorAvailabilityService
     {
-        public function __construct(private readonly \Carbon\CarbonInterface $slot) {}
+        public function __construct(private readonly CarbonInterface $slot) {}
 
-        public function slots(int $doctorId, \Carbon\CarbonInterface $date, ?string $tz = null): array
+        public function slots(int $doctorId, CarbonInterface $date, ?string $tz = null): array
         {
             return [[
                 'start' => $this->slot->copy()->toImmutable(),
@@ -89,7 +92,7 @@ it('rejects a booking inside the 2h anticipación window with AnticipationWindow
         }
     };
 
-    app()->instance(\App\Services\DoctorAvailabilityService::class, $fake);
+    app()->instance(DoctorAvailabilityService::class, $fake);
 
     $action = app(BookAppointmentAction::class);
 

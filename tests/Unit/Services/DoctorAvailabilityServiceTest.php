@@ -1,11 +1,14 @@
 <?php
 
+use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\DoctorSchedule;
 use App\Models\DoctorScheduleOverride;
+use App\Models\Patient;
 use App\Models\User;
 use App\Services\DoctorAvailabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -51,7 +54,7 @@ it('returns all slots from a recurring rule when there are no overrides or booke
     foreach ($slots as $i => $slot) {
         expect($slot['start']->format('H:i'))->toBe($expectedHours[$i]);
         expect($slot['end']->format('H:i'))->toBe(
-            \Illuminate\Support\Carbon::createFromFormat('H:i', $expectedHours[$i])
+            Carbon::createFromFormat('H:i', $expectedHours[$i])
                 ->addMinutes(30)->format('H:i')
         );
     }
@@ -117,11 +120,11 @@ it('omits a slot that is already covered by a non-cancelled booked appointment',
     ]);
 
     $patientUser = User::factory()->patient()->create();
-    $patient = \App\Models\Patient::factory()->for($patientUser)->create();
+    $patient = Patient::factory()->for($patientUser)->create();
 
     // Book the 10:00 slot. The service should drop that one slot.
     $bookedStart = $this->targetDate->copy()->setTime(10, 0);
-    \App\Models\Appointment::factory()
+    Appointment::factory()
         ->for($this->doctor)
         ->for($patient)
         ->create([

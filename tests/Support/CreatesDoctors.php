@@ -58,4 +58,3 @@ trait CreatesDoctors
         return [$user, $doctor, $token];
     }
 }
-

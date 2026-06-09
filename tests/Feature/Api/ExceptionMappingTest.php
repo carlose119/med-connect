@@ -41,7 +41,7 @@ beforeEach(function (): void {
             'forbidden' => new AuthorizationException('Not authorised for this resource.'),
             'not_found' => new ModelNotFoundException('No query results for the test model.'),
             'validation' => new ValidationException(Validator::make([], ['name' => 'required'])),
-            'internal' => new \RuntimeException('Boom — unmapped exception.'),
+            'internal' => new RuntimeException('Boom — unmapped exception.'),
             default => throw new RuntimeException("Unknown thrower type: {$type}"),
         };
     };

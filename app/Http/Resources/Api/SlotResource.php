@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,7 +29,7 @@ class SlotResource extends JsonResource
         $tzName = (string) ($request->attributes->get('tz')?->name ?? config('app.timezone'));
 
         $format = static function (\DateTimeInterface $value) use ($tzName): string {
-            return \Carbon\CarbonImmutable::instance($value)
+            return CarbonImmutable::instance($value)
                 ->setTimezone($tzName)
                 ->toIso8601String();
         };

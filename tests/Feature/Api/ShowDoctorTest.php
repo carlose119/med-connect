@@ -21,10 +21,9 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  * Authz: doctors are public — Sanctum auth required, no per-row
  * authorization (any authenticated user can see any doctor).
  */
-
 beforeEach(function (): void {
-    [$this->patient, , ] = $this->createPatientWithToken();
-    [, $this->doctor, ] = $this->createDoctorWithToken();
+    [$this->patient] = $this->createPatientWithToken();
+    [, $this->doctor] = $this->createDoctorWithToken();
 });
 
 it('returns 200 with the doctor resource for an authenticated user', function (): void {

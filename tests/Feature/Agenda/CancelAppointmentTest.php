@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\User;
+use App\States\Appointment\Cancelled;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -47,7 +48,7 @@ it('lets a patient cancel inside the 24h window (now+48h) and records cancellati
     $action = app(CancelAppointmentAction::class);
     $cancelled = $action($appointment->id, $this->patientUser, 'Patient changed mind.');
 
-    expect($cancelled->state)->toBeInstanceOf(\App\States\Appointment\Cancelled::class)
+    expect($cancelled->state)->toBeInstanceOf(Cancelled::class)
         ->and($cancelled->cancellation_reason)->toBe('Patient changed mind.');
 });
 
@@ -80,6 +81,6 @@ it('lets the assigned doctor cancel at any time, even inside the 24h window', fu
     $action = app(CancelAppointmentAction::class);
     $cancelled = $action($appointment->id, $this->doctorUser, 'Doctor unavailable.');
 
-    expect($cancelled->state)->toBeInstanceOf(\App\States\Appointment\Cancelled::class)
+    expect($cancelled->state)->toBeInstanceOf(Cancelled::class)
         ->and($cancelled->cancellation_reason)->toBe('Doctor unavailable.');
 });

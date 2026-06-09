@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Prescription;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesDoctors;
@@ -18,12 +19,11 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - doctor   → only prescriptions they issued (doctor_id = $user->doctor->id)
  *   - admin    → all prescriptions
  */
-
 beforeEach(function (): void {
-    [$this->docAUser, $this->docA, ] = $this->createDoctorWithToken();
-    [$this->docBUser, $this->docB, ] = $this->createDoctorWithToken();
-    [$this->patientAUser, $this->patientA, ] = $this->createPatientWithToken();
-    [$this->patientBUser, $this->patientB, ] = $this->createPatientWithToken();
+    [$this->docAUser, $this->docA] = $this->createDoctorWithToken();
+    [$this->docBUser, $this->docB] = $this->createDoctorWithToken();
+    [$this->patientAUser, $this->patientA] = $this->createPatientWithToken();
+    [$this->patientBUser, $this->patientB] = $this->createPatientWithToken();
 
     $base = CarbonImmutable::now()->addDays(2)->setTime(10, 0);
 
@@ -66,7 +66,7 @@ it('returns paginated prescriptions scoped to the doctor', function (): void {
 });
 
 it('returns the full unfiltered list for admins', function (): void {
-    $admin = \App\Models\User::factory()->admin()->create();
+    $admin = User::factory()->admin()->create();
 
     $response = $this->actingAs($admin, 'sanctum')
         ->getJson('/api/prescriptions');

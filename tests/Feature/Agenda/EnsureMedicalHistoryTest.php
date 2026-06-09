@@ -5,6 +5,7 @@ use App\Actions\EnsureMedicalHistoryAction;
 use App\Models\Doctor;
 use App\Models\DoctorSchedule;
 use App\Models\MedicalHistory;
+use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -15,7 +16,7 @@ beforeEach(function () {
     $this->doctor = Doctor::factory()->for($this->doctorUser)->create();
 
     $this->patientUser = User::factory()->patient()->create();
-    $this->patient = \App\Models\Patient::factory()->for($this->patientUser)->create();
+    $this->patient = Patient::factory()->for($this->patientUser)->create();
 });
 
 /**

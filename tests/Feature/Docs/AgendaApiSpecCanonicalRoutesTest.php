@@ -25,7 +25,6 @@ declare(strict_types=1);
  * Sibling of tests/Feature/Docs/ReadmeApiSurfaceTest.php, which closes the
  * same drift family in README.md (agenda-readme-drift archive at d3b4ef9).
  */
-
 it('has exactly 1 GET /api/auth/me scenario in REQ-API-7', function () {
     $spec = file_get_contents(base_path('openspec/specs/agenda/api/spec.md'));
     expect($spec)->not->toBeFalse('Could not read openspec/specs/agenda/api/spec.md');

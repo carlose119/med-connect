@@ -67,4 +67,3 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/prescriptions', [PrescriptionController::class, 'index']);
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });
-

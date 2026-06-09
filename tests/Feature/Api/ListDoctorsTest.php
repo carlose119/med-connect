@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Doctor;
 use App\Models\Specialty;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesDoctors;
 use Tests\Support\CreatesPatients;
@@ -17,7 +19,6 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  * Once T-API-21 lands (DoctorController@index + ListDoctorsRequest +
  * DoctorResource + the route), all 3 scenarios must pass.
  */
-
 beforeEach(function (): void {
     // Two specialties. CreatesDoctors defaults to 'general-medicine';
     // we create a second one explicitly for the filter test.
@@ -35,13 +36,13 @@ beforeEach(function (): void {
         $this->createDoctorWithToken();
     }
     for ($i = 0; $i < 2; $i++) {
-        $user = \App\Models\User::factory()->doctor()->create();
-        \App\Models\Doctor::factory()->for($user)->for($this->specialtyB)->create();
+        $user = User::factory()->doctor()->create();
+        Doctor::factory()->for($user)->for($this->specialtyB)->create();
     }
 });
 
 it('returns a paginated list of all active doctors', function (): void {
-    [$patient, , ] = $this->createPatientWithToken();
+    [$patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($patient, 'sanctum')
         ->getJson('/api/doctors');
@@ -70,7 +71,7 @@ it('returns a paginated list of all active doctors', function (): void {
 });
 
 it('filters the list by ?specialty_id=', function (): void {
-    [$patient, , ] = $this->createPatientWithToken();
+    [$patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($patient, 'sanctum')
         ->getJson("/api/doctors?specialty_id={$this->specialtyB->id}");
@@ -87,7 +88,7 @@ it('filters the list by ?specialty_id=', function (): void {
 });
 
 it('respects per_page for the doctors list', function (): void {
-    [$patient, , ] = $this->createPatientWithToken();
+    [$patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($patient, 'sanctum')
         ->getJson('/api/doctors?per_page=2');

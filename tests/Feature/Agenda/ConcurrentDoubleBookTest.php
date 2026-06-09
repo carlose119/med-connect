@@ -6,6 +6,7 @@ use App\Models\Doctor;
 use App\Models\DoctorSchedule;
 use App\Models\Patient;
 use App\Models\User;
+use App\States\Appointment\Pending;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -60,7 +61,7 @@ it('rejects a concurrent double-book with SlotNotAvailableException on the real 
 
     // First booking — must succeed.
     $first = $action($doctor->id, $start, $patient->id);
-    expect($first->state)->toBeInstanceOf(\App\States\Appointment\Pending::class);
+    expect($first->state)->toBeInstanceOf(Pending::class);
 
     // Second booking against the same (doctor_id, start_time). The
     // action's lockForUpdate() is in effect for the first call's

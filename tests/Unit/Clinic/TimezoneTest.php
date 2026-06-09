@@ -13,7 +13,6 @@ use Carbon\CarbonImmutable;
  * API Resources reading the attribute) is covered in T-API-5 and
  * T-API-7 with strict red→green.
  */
-
 it('returns true for valid IANA timezones', function (): void {
     expect(Timezone::isValid('America/Argentina/Buenos_Aires'))->toBeTrue();
     expect(Timezone::isValid('UTC'))->toBeTrue();

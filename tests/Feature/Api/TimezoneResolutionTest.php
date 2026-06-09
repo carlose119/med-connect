@@ -29,7 +29,7 @@ it('defaults to clinic.timezone when ?tz= is omitted', function (): void {
 
     // Build a doctor with a published schedule for 3 days from now
     // (same pattern as ListSlotsTest).
-    [, $doctor, ] = $this->createDoctorWithToken(
+    [, $doctor] = $this->createDoctorWithToken(
         CarbonImmutable::now()->addDays(3),
     );
     $date = CarbonImmutable::now()->addDays(3)->startOfDay();

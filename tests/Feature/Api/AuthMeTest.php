@@ -23,7 +23,7 @@ uses(RefreshDatabase::class, CreatesPatients::class);
  * (which was updated in PR 4 to call /api/auth/me).
  */
 it('returns 200 with the user resource shape for a patient actor', function (): void {
-    [$user, , ] = $this->createPatientWithToken();
+    [$user] = $this->createPatientWithToken();
 
     $response = $this->actingAs($user, 'sanctum')
         ->getJson('/api/auth/me');

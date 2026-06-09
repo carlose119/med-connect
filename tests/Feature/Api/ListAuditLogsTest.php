@@ -20,11 +20,10 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - doctor  → 403 FORBIDDEN
  *   - patient → 403 FORBIDDEN
  */
-
 beforeEach(function (): void {
     $this->admin = User::factory()->admin()->create();
-    [$this->doctorUser, , ] = $this->createDoctorWithToken();
-    [$this->patientUser, , ] = $this->createPatientWithToken();
+    [$this->doctorUser] = $this->createDoctorWithToken();
+    [$this->patientUser] = $this->createPatientWithToken();
 
     // Seed 5 audit logs with different action verbs.
     for ($i = 0; $i < 3; $i++) {

@@ -22,9 +22,7 @@ use Carbon\CarbonInterface;
  */
 final readonly class Timezone
 {
-    public function __construct(public string $name)
-    {
-    }
+    public function __construct(public string $name) {}
 
     /**
      * Validate the given identifier and return a Timezone instance.

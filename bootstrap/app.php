@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Responses\Api\ErrorResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,11 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (Throwable $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null; // web routes keep the default HTML handling
             }
 
-            return \App\Http\Responses\Api\ErrorResponse::fromException($e, $request);
+            return ErrorResponse::fromException($e, $request);
         });
     })->create();

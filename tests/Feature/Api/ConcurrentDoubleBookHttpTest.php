@@ -48,15 +48,15 @@ it('two concurrent POST /api/appointments for the same slot return 201 + 409 on 
     }
 
     // Doctor + schedule for a target day with one published slot.
-    [, $doctor, ] = $this->createDoctorWithToken(
+    [, $doctor] = $this->createDoctorWithToken(
         CarbonImmutable::now()->addDays(5),
     );
 
     $targetDate = CarbonImmutable::now()->addDays(5)->setTime(10, 0);
 
     // Two distinct patients, each with a Sanctum token.
-    [$firstUser, , ] = $this->createPatientWithToken();
-    [, $secondPatient, ] = $this->createPatientWithToken();
+    [$firstUser] = $this->createPatientWithToken();
+    [, $secondPatient] = $this->createPatientWithToken();
 
     // First booking via the action — guarantees a row exists for
     // the (doctor, start_time) when the second HTTP request hits.
@@ -128,14 +128,14 @@ it('includes conflicting_appointment_id in the 409 details', function (): void {
         ));
     }
 
-    [, $doctor, ] = $this->createDoctorWithToken(
+    [, $doctor] = $this->createDoctorWithToken(
         CarbonImmutable::now()->addDays(5),
     );
 
     $targetDate = CarbonImmutable::now()->addDays(5)->setTime(10, 0);
 
-    [$firstUser, , ] = $this->createPatientWithToken();
-    [, $secondPatient, ] = $this->createPatientWithToken();
+    [$firstUser] = $this->createPatientWithToken();
+    [, $secondPatient] = $this->createPatientWithToken();
 
     $firstResponse = $this->actingAs($firstUser, 'sanctum')
         ->postJson('/api/appointments', [

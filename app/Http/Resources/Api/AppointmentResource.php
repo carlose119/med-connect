@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api;
 
 use App\Models\Appointment;
 use App\States\Appointment\AppointmentState;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,7 +47,7 @@ class AppointmentResource extends JsonResource
             : (string) $state;
 
         $format = static function (\DateTimeInterface $value) use ($tzName): string {
-            return \Carbon\CarbonImmutable::instance($value)
+            return CarbonImmutable::instance($value)
                 ->setTimezone($tzName)
                 ->toIso8601String();
         };

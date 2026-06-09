@@ -1,9 +1,17 @@
 <?php
 
+use App\Exceptions\Domain\CancellationWindowViolationException;
+use App\Exceptions\Domain\InvalidStateTransitionException;
+use App\Exceptions\Domain\UnauthorizedActorException;
 use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\User;
+use App\States\Appointment\AppointmentState;
+use App\States\Appointment\Cancelled;
+use App\States\Appointment\Completed;
+use App\States\Appointment\Confirmed;
+use App\States\Appointment\Pending;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -30,34 +38,34 @@ beforeEach(function () {
 });
 
 it('casts the state column to the AppointmentState abstract class', function () {
-    expect($this->appointment->state)->toBeInstanceOf(\App\States\Appointment\AppointmentState::class);
+    expect($this->appointment->state)->toBeInstanceOf(AppointmentState::class);
 });
 
 it('starts a fresh appointment in the Pending state class', function () {
-    expect($this->appointment->state)->toBeInstanceOf(\App\States\Appointment\Pending::class);
+    expect($this->appointment->state)->toBeInstanceOf(Pending::class);
 });
 
 it('lets the assigned doctor confirm a pending appointment', function () {
     $this->appointment->state->transitionTo(
-        \App\States\Appointment\Confirmed::class,
+        Confirmed::class,
         $this->doctorUser,
     );
-    expect($this->appointment->state)->toBeInstanceOf(\App\States\Appointment\Confirmed::class);
+    expect($this->appointment->state)->toBeInstanceOf(Confirmed::class);
 });
 
 it('rejects a patient attempting to self-confirm', function () {
     expect(fn () => $this->appointment->state->transitionTo(
-        \App\States\Appointment\Confirmed::class,
+        Confirmed::class,
         $this->patientUser,
-    ))->toThrow(\App\Exceptions\Domain\UnauthorizedActorException::class);
+    ))->toThrow(UnauthorizedActorException::class);
 });
 
 it('rejects a different (unassigned) doctor attempting to confirm', function () {
     $otherDoctorUser = User::factory()->doctor()->create();
     expect(fn () => $this->appointment->state->transitionTo(
-        \App\States\Appointment\Confirmed::class,
+        Confirmed::class,
         $otherDoctorUser,
-    ))->toThrow(\App\Exceptions\Domain\UnauthorizedActorException::class);
+    ))->toThrow(UnauthorizedActorException::class);
 });
 
 it('lets the assigned doctor complete a confirmed appointment', function () {
@@ -65,18 +73,18 @@ it('lets the assigned doctor complete a confirmed appointment', function () {
     $this->appointment->refresh();
 
     $this->appointment->state->transitionTo(
-        \App\States\Appointment\Completed::class,
+        Completed::class,
         $this->doctorUser,
     );
-    expect($this->appointment->state)->toBeInstanceOf(\App\States\Appointment\Completed::class);
+    expect($this->appointment->state)->toBeInstanceOf(Completed::class);
 });
 
 it('lets a patient cancel a pending appointment inside the 24h window', function () {
     $this->appointment->state->transitionTo(
-        \App\States\Appointment\Cancelled::class,
+        Cancelled::class,
         $this->patientUser,
     );
-    expect($this->appointment->state)->toBeInstanceOf(\App\States\Appointment\Cancelled::class);
+    expect($this->appointment->state)->toBeInstanceOf(Cancelled::class);
 });
 
 it('rejects a patient cancelling outside the 24h window', function () {
@@ -87,9 +95,9 @@ it('rejects a patient cancelling outside the 24h window', function () {
     $this->appointment->refresh();
 
     expect(fn () => $this->appointment->state->transitionTo(
-        \App\States\Appointment\Cancelled::class,
+        Cancelled::class,
         $this->patientUser,
-    ))->toThrow(\App\Exceptions\Domain\CancellationWindowViolationException::class);
+    ))->toThrow(CancellationWindowViolationException::class);
 });
 
 it('rejects any transition out of a terminal state', function () {
@@ -97,7 +105,7 @@ it('rejects any transition out of a terminal state', function () {
     $this->appointment->refresh();
 
     expect(fn () => $this->appointment->state->transitionTo(
-        \App\States\Appointment\Pending::class,
+        Pending::class,
         $this->doctorUser,
-    ))->toThrow(\App\Exceptions\Domain\InvalidStateTransitionException::class);
+    ))->toThrow(InvalidStateTransitionException::class);
 });

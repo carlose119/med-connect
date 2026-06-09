@@ -3,13 +3,13 @@
 namespace App\Filament\Resources\DoctorAppointments\Tables;
 
 use App\Models\Appointment;
-use App\States\Appointment\AppointmentState;
 use App\States\Appointment\Cancelled;
 use App\States\Appointment\Completed;
 use App\States\Appointment\Confirmed;
 use App\States\Appointment\NoShow;
 use App\States\Appointment\Pending;
 use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -91,13 +91,12 @@ class DoctorAppointmentsTable
                     )),
                 Action::make('cancel')
                     ->label('Cancel')
-                    ->visible(fn (Appointment $record): bool =>
-                        ! $record->state instanceof Completed
+                    ->visible(fn (Appointment $record): bool => ! $record->state instanceof Completed
                         && ! $record->state instanceof Cancelled
                         && ! $record->state instanceof NoShow
                     )
                     ->form([
-                        \Filament\Forms\Components\TextInput::make('cancellation_reason')
+                        TextInput::make('cancellation_reason')
                             ->label('Cancellation Reason')
                             ->required()
                             ->maxLength(500),

@@ -20,17 +20,16 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  * Once T-API-13 lands (AppointmentController@cancel +
  * CancelAppointmentRequest + the route), all 3 scenarios must pass.
  */
-
 beforeEach(function (): void {
     // Doctor + schedule so a fixture appointment can be created with
     // a known doctor_id and start_time. The cancel endpoint doesn't
     // need the schedule; we only need a valid Appointment row to
     // cancel.
-    [, $this->doctor, ] = $this->createDoctorWithToken();
+    [, $this->doctor] = $this->createDoctorWithToken();
 });
 
 it('lets a patient cancel inside the 24h window (now+48h) and records cancellation_reason', function (): void {
-    [$user, $patient, ] = $this->createPatientWithToken();
+    [$user, $patient] = $this->createPatientWithToken();
 
     $appointment = Appointment::factory()
         ->for($this->doctor)
@@ -52,7 +51,7 @@ it('lets a patient cancel inside the 24h window (now+48h) and records cancellati
 });
 
 it('rejects a patient cancelling outside the 24h window (now+12h) with CANCELLATION_WINDOW_VIOLATION', function (): void {
-    [$user, $patient, ] = $this->createPatientWithToken();
+    [$user, $patient] = $this->createPatientWithToken();
 
     $appointment = Appointment::factory()
         ->for($this->doctor)
@@ -73,8 +72,8 @@ it('rejects a patient cancelling outside the 24h window (now+12h) with CANCELLAT
 });
 
 it('lets the assigned doctor cancel at any time, even inside the 24h window', function (): void {
-    [$doctorUser, $doctor, ] = $this->createDoctorWithToken();
-    [, $patient, ] = $this->createPatientWithToken();
+    [$doctorUser, $doctor] = $this->createDoctorWithToken();
+    [, $patient] = $this->createPatientWithToken();
 
     $appointment = Appointment::factory()
         ->for($doctor)

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
 
 /**
  * Wire payload for POST /api/appointments.
@@ -41,7 +42,7 @@ class BookAppointmentRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string|\Illuminate\Validation\Rules\In>>
+     * @return array<string, array<int, string|In>>
      */
     public function rules(): array
     {

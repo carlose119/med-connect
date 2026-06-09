@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api;
 
 use App\Models\AuditLog;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,8 +30,9 @@ class AuditLogResource extends JsonResource
                 return null;
             }
             if (! $value instanceof \DateTimeInterface) {
-                $value = \Carbon\CarbonImmutable::parse((string) $value);
+                $value = CarbonImmutable::parse((string) $value);
             }
+
             return $value->setTimezone($tzName)->toIso8601String();
         };
 

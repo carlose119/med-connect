@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Appointment;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesDoctors;
@@ -26,11 +27,10 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - assigned patient → 200
  *   - other patient   → 403 FORBIDDEN
  */
-
 beforeEach(function (): void {
-    [, $this->doctor, ] = $this->createDoctorWithToken();
-    [$this->ownerUser, $this->ownerPatient, ] = $this->createPatientWithToken();
-    [, $this->otherPatient, ] = $this->createPatientWithToken();
+    [, $this->doctor] = $this->createDoctorWithToken();
+    [$this->ownerUser, $this->ownerPatient] = $this->createPatientWithToken();
+    [, $this->otherPatient] = $this->createPatientWithToken();
 
     $this->appointment = Appointment::factory()
         ->for($this->doctor)
@@ -64,7 +64,7 @@ it('returns 403 FORBIDDEN for a non-owner patient', function (): void {
 });
 
 it('returns 200 with the appointment resource for the assigned doctor', function (): void {
-    [, $doctor, ] = $this->createDoctorWithToken();
+    [, $doctor] = $this->createDoctorWithToken();
     $appt = Appointment::factory()
         ->for($doctor)
         ->for($this->ownerPatient)
@@ -104,7 +104,7 @@ it('returns 200 with the appointment resource for the assigned doctor', function
 it('returns 403 FORBIDDEN for a doctor from a different coverage', function (): void {
     // A second doctor, completely unassigned to the original
     // appointment. Their cross-coverage 403 path is the test target.
-    [, $otherDoctor, ] = $this->createDoctorWithToken();
+    [, $otherDoctor] = $this->createDoctorWithToken();
     $otherDoctorUser = $otherDoctor->user;
 
     $response = $this->actingAs($otherDoctorUser, 'sanctum')
@@ -115,7 +115,7 @@ it('returns 403 FORBIDDEN for a doctor from a different coverage', function (): 
 });
 
 it('returns 200 for an admin reading any appointment', function (): void {
-    $admin = \App\Models\User::factory()->admin()->create();
+    $admin = User::factory()->admin()->create();
 
     $response = $this->actingAs($admin, 'sanctum')
         ->getJson("/api/appointments/{$this->appointment->id}");

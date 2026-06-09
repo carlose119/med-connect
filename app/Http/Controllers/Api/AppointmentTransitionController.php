@@ -5,15 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\Api\AppointmentTransitionRequest;
 use App\Http\Resources\Api\AppointmentResource;
 use App\Models\Appointment;
-use App\States\Appointment\Cancelled as CancelledState;
 use App\States\Appointment\Completed as CompletedState;
 use App\States\Appointment\Confirmed as ConfirmedState;
 use App\States\Appointment\NoShow as NoShowState;
-use App\States\Appointment\Pending as PendingState;
-use App\States\Transitions\CancelAppointmentTransition;
-use App\States\Transitions\CompleteAppointmentTransition;
-use App\States\Transitions\ConfirmAppointmentTransition;
-use App\States\Transitions\MarkNoShowAppointmentTransition;
 use Illuminate\Routing\Controller;
 
 /**

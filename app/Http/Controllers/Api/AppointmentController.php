@@ -147,4 +147,3 @@ class AppointmentController extends Controller
             ->setStatusCode(200);
     }
 }
-

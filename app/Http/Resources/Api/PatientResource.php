@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api;
 
 use App\Models\Patient;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,7 +27,7 @@ class PatientResource extends JsonResource
         $tzName = (string) ($request->attributes->get('tz')?->name ?? config('app.timezone'));
 
         $format = static function (\DateTimeInterface $value) use ($tzName): string {
-            return \Carbon\CarbonImmutable::instance($value)
+            return CarbonImmutable::instance($value)
                 ->setTimezone($tzName)
                 ->toDateString();
         };

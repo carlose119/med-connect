@@ -17,7 +17,6 @@ uses(RefreshDatabase::class);
  * down: admin creates a doctor -> doctor.created log; admin creates any
  * other user -> user.created log.
  */
-
 it('admin creating a doctor writes a doctor.created audit log row', function () {
     $admin = User::factory()->admin()->create();
     $specialty = Specialty::factory()->create();

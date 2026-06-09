@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Appointment;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesDoctors;
@@ -20,9 +21,8 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - self patient           → 200
  *   - other patient          → 403 FORBIDDEN
  */
-
 it('returns 200 when the patient calls for their own profile', function (): void {
-    [$user, $patient, ] = $this->createPatientWithToken();
+    [$user, $patient] = $this->createPatientWithToken();
 
     $response = $this->actingAs($user, 'sanctum')
         ->getJson("/api/patients/{$patient->id}");
@@ -33,8 +33,8 @@ it('returns 200 when the patient calls for their own profile', function (): void
 });
 
 it('returns 200 when an admin requests the patient', function (): void {
-    [, $patient, ] = $this->createPatientWithToken();
-    $admin = \App\Models\User::factory()->admin()->create();
+    [, $patient] = $this->createPatientWithToken();
+    $admin = User::factory()->admin()->create();
 
     $response = $this->actingAs($admin, 'sanctum')
         ->getJson("/api/patients/{$patient->id}");
@@ -44,8 +44,8 @@ it('returns 200 when an admin requests the patient', function (): void {
 });
 
 it('returns 200 when the doctor has an appointment with the patient', function (): void {
-    [$doctorUser, $doctor, ] = $this->createDoctorWithToken();
-    [, $patient, ] = $this->createPatientWithToken();
+    [$doctorUser, $doctor] = $this->createDoctorWithToken();
+    [, $patient] = $this->createPatientWithToken();
 
     // Create a confirmed appointment linking the doctor to the patient.
     Appointment::factory()
@@ -65,8 +65,8 @@ it('returns 200 when the doctor has an appointment with the patient', function (
 });
 
 it('returns 403 FORBIDDEN for a different patient', function (): void {
-    [, $patient, ] = $this->createPatientWithToken();
-    [$otherUser, , ] = $this->createPatientWithToken();
+    [, $patient] = $this->createPatientWithToken();
+    [$otherUser] = $this->createPatientWithToken();
 
     $response = $this->actingAs($otherUser, 'sanctum')
         ->getJson("/api/patients/{$patient->id}");
@@ -90,8 +90,8 @@ it('returns 403 FORBIDDEN for a different patient', function (): void {
  * the "at least one appointment" check.
  */
 it('returns 403 FORBIDDEN for a doctor with no shared appointments', function (): void {
-    [$doctorUser, , ] = $this->createDoctorWithToken();
-    [, $patient, ] = $this->createPatientWithToken();
+    [$doctorUser] = $this->createDoctorWithToken();
+    [, $patient] = $this->createPatientWithToken();
 
     // No appointment is created between the doctor and the patient.
     // The doctor's cross-coverage 403 path of PatientPolicy@view is

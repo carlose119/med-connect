@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Appointment;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesDoctors;
@@ -31,15 +32,14 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  *   - envelope shape = LengthAwarePaginator (`{data, links, meta}`)
  *   - orderBy start_time ASC (stable pagination)
  */
-
 beforeEach(function (): void {
     // Two doctors, two patients, six appointments interleaved so the
     // role-scope assertions can't be fooled by ordering side effects.
-    [$this->docAUser, $this->docA, ] = $this->createDoctorWithToken();
-    [$this->docBUser, $this->docB, ] = $this->createDoctorWithToken();
+    [$this->docAUser, $this->docA] = $this->createDoctorWithToken();
+    [$this->docBUser, $this->docB] = $this->createDoctorWithToken();
 
-    [$this->patientAUser, $this->patientA, ] = $this->createPatientWithToken();
-    [$this->patientBUser, $this->patientB, ] = $this->createPatientWithToken();
+    [$this->patientAUser, $this->patientA] = $this->createPatientWithToken();
+    [$this->patientBUser, $this->patientB] = $this->createPatientWithToken();
 
     $base = CarbonImmutable::now()->addDays(2)->setTime(10, 0);
 
@@ -116,7 +116,7 @@ it('returns a paginated list scoped to the doctor for doctor actors', function (
 });
 
 it('returns the full unfiltered list for admin actors', function (): void {
-    $admin = \App\Models\User::factory()->admin()->create();
+    $admin = User::factory()->admin()->create();
 
     $response = $this->actingAs($admin, 'sanctum')
         ->getJson('/api/appointments');

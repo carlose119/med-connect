@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Doctor;
+use App\Models\Specialty;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Factories\DoctorScheduleFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,11 +25,10 @@ uses(RefreshDatabase::class, CreatesPatients::class, CreatesDoctors::class);
  * The slot list comes from DoctorAvailabilityService::slots(),
  * which is a pure function: doctor id + date (+ optional tz).
  */
-
 it('returns the slots for a doctor with a published schedule', function (): void {
     // Build a doctor with a schedule for 3 days from now's day-of-week
     // so the date we query matches the schedule's day-of-week.
-    [, $doctor, ] = $this->createDoctorWithToken(
+    [, $doctor] = $this->createDoctorWithToken(
         CarbonImmutable::now()->addDays(3),
     );
     $date = CarbonImmutable::now()->addDays(3)->startOfDay();
@@ -44,12 +46,12 @@ it('returns the slots for a doctor with a published schedule', function (): void
 });
 
 it('returns an empty array when the doctor has no schedule for the date', function (): void {
-    $user = \App\Models\User::factory()->doctor()->create();
-    $specialty = \App\Models\Specialty::firstOrCreate(
+    $user = User::factory()->doctor()->create();
+    $specialty = Specialty::firstOrCreate(
         ['slug' => 'general-medicine'],
         ['name' => 'General Medicine', 'is_active' => true],
     );
-    $doctor = \App\Models\Doctor::factory()->for($user)->for($specialty)->create();
+    $doctor = Doctor::factory()->for($user)->for($specialty)->create();
 
     $date = CarbonImmutable::now()->addDays(7)->startOfDay();
 
@@ -67,7 +69,7 @@ it('filters out slots that fall inside the 2h anticipation window', function ():
     // now; the slot at exactly 2h passes. We assert the count is
     // strictly less than the unscheduled default (4 slots) — meaning
     // at least one was filtered by the anticipación guard.
-    [, $doctor, ] = $this->createDoctorWithToken();
+    [, $doctor] = $this->createDoctorWithToken();
     $dayOfWeek = (int) CarbonImmutable::now()->dayOfWeekIso;
 
     $now = CarbonImmutable::now();
@@ -113,7 +115,7 @@ it('filters out slots that fall inside the 2h anticipation window', function ():
 });
 
 it('returns 422 VALIDATION_ERROR for an invalid date format', function (): void {
-    [, $doctor, ] = $this->createDoctorWithToken();
+    [, $doctor] = $this->createDoctorWithToken();
 
     $response = $this->actingAs($doctor->user, 'sanctum')
         ->getJson("/api/doctors/{$doctor->id}/slots?date=not-a-date");

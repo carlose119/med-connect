@@ -3,8 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Appointment;
-use App\Models\Doctor;
-use App\Models\Patient;
 use App\Models\Prescription;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;

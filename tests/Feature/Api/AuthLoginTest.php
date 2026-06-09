@@ -21,7 +21,6 @@ uses(RefreshDatabase::class, CreatesPatients::class);
  * `auth:sanctum` group but inside the `ResolveTimezone` group), both
  * scenarios must pass.
  */
-
 it('returns 200 with {data.user, data.token} for valid credentials', function (): void {
     $user = User::factory()->patient()->create([
         'password' => bcrypt('correct-password'),
