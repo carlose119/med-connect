@@ -37,7 +37,7 @@ class MedicalHistoryResource extends JsonResource
             'patient_id' => $hist->patient_id,
             'primary_doctor_id' => $hist->primary_doctor_id,
             'opened_at' => $hist->opened_at ? $format($hist->opened_at) : null,
-            'notes_count' => $hist->notes()->count(),
+            'notes_count' => $hist->notes_count,
         ];
     }
 }

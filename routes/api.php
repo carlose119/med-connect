@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MedicalHistoryController;
+use App\Http\Controllers\Api\MedicalNoteController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PrescriptionController;
 use App\Http\Controllers\Api\SpecialtyController;
@@ -64,6 +65,10 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/specialties', [SpecialtyController::class, 'index']);
     Route::get('/patients/{patient}', [PatientController::class, 'show']);
     Route::get('/medical-histories/{medical_history}', [MedicalHistoryController::class, 'show']);
+    Route::get('/medical-histories/{medical_history}/notes', [MedicalNoteController::class, 'index']);
+    Route::post('/medical-histories/{medical_history}/notes', [MedicalNoteController::class, 'store']);
+    Route::get('/medical-notes/{medical_note}', [MedicalNoteController::class, 'show']);
+    Route::post('/medical-notes/{medical_note}/amend', [MedicalNoteController::class, 'amend']);
     Route::get('/prescriptions', [PrescriptionController::class, 'index']);
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });
