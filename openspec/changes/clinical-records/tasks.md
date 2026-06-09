@@ -9,7 +9,7 @@
 | Chained PRs recommended | Yes |
 | Suggested split | PR 1 (append-only + notes CRUD) → PR 2 (attachments) |
 | Delivery strategy | ask-always |
-| Chain strategy | pending |
+| Chain strategy | stacked-to-main |
 
 Decision needed before apply: Yes
 Chained PRs recommended: Yes
@@ -25,31 +25,31 @@ Chain strategy: pending
 
 ## Phase 1: Foundation (PR 1)
 
-- [ ] 1.1 **RED**: Write unit test asserting `MedicalNote::update()` throws, `delete()` throws, `create()` succeeds
-- [ ] 1.2 **GREEN**: Add `boot()` with `saving`/`deleting` event listeners to MedicalNote; throw `LogicException`
-- [ ] 1.3 Create `MedicalHistoryPolicy` with `view()` and `createNote()` — checks doctor has appointment for patient
-- [ ] 1.4 Create `CreateMedicalNoteRequest` + `AmendMedicalNoteRequest` with field validation rules
+- [x] 1.1 **RED**: Write unit test asserting `MedicalNote::update()` throws, `delete()` throws, `create()` succeeds
+- [x] 1.2 **GREEN**: Add `boot()` with `saving`/`deleting` event listeners to MedicalNote; throw `LogicException`
+- [x] 1.3 Create `MedicalHistoryPolicy` with `view()` and `createNote()` — checks doctor has appointment for patient
+- [x] 1.4 Create `CreateMedicalNoteRequest` + `AmendMedicalNoteRequest` with field validation rules
 
 ## Phase 2: Core Implementation (PR 1)
 
-- [ ] 2.1 Create `app/Actions/Medical/CreateMedicalNoteAction` — inserts note with symptoms, physical_exam, diagnosis, treatment_notes
-- [ ] 2.2 Create `app/Actions/Medical/AmendMedicalNoteAction` — new note with `corrects_note_id`, throws if original already corrected
-- [ ] 2.3 Create `app/Http/Resources/Api/MedicalNoteResource` — id, history_id, doctor, fields, corrects_note_id, created_at
-- [ ] 2.4 Create `app/Http/Controllers/Api/MedicalNoteController` — store, index, show, amend
+- [x] 2.1 Create `app/Actions/Medical/CreateMedicalNoteAction` — inserts note with symptoms, physical_exam, diagnosis, treatment_notes
+- [x] 2.2 Create `app/Actions/Medical/AmendMedicalNoteAction` — new note with `corrects_note_id`, throws if original already corrected
+- [x] 2.3 Create `app/Http/Resources/Api/MedicalNoteResource` — id, history_id, doctor, fields, corrects_note_id, created_at
+- [x] 2.4 Create `app/Http/Controllers/Api/MedicalNoteController` — store, index, show, amend
 
 ## Phase 3: Integration & Wiring (PR 1)
 
-- [ ] 3.1 Modify `MedicalHistoryController@show` — replace inline authz with `$this->authorize('view', $history)`
-- [ ] 3.2 Fix N+1 in `MedicalHistoryResource` — change `notes()->count()` to preloaded `notes_count`; add `->loadCount('notes')` in controller
-- [ ] 3.3 Register policy via `Gate::policy()` in `AppServiceProvider`
-- [ ] 3.4 Add note routes to `routes/api.php` under Sanctum group (nested under histories)
+- [x] 3.1 Modify `MedicalHistoryController@show` — replace inline authz with `$this->authorize('view', $history)`
+- [x] 3.2 Fix N+1 in `MedicalHistoryResource` — change `notes()->count()` to preloaded `notes_count`; add `->loadCount('notes')` in controller
+- [x] 3.3 Register policy via `Gate::policy()` in `AppServiceProvider`
+- [x] 3.4 Add note routes to `routes/api.php` under Sanctum group (nested under histories)
 
 ## Phase 4: Testing (PR 1)
 
-- [ ] 4.1 Integration: POST create note — 201 with appointment, 403 without, 422 validation
-- [ ] 4.2 Integration: POST amend note — 201 with `corrects_note_id`, original unchanged
-- [ ] 4.3 Integration: GET list notes (200 paginated), GET show note (200 authorized, 403 unauthorized)
-- [ ] 4.4 Assert N+1 fixed: only 1 query for `notes_count` when loading 20 histories
+- [x] 4.1 Integration: POST create note — 201 with appointment, 403 without, 422 validation
+- [x] 4.2 Integration: POST amend note — 201 with `corrects_note_id`, original unchanged
+- [x] 4.3 Integration: GET list notes (200 paginated), GET show note (200 authorized, 403 unauthorized)
+- [x] 4.4 Assert N+1 fixed: only 1 query for `notes_count` when loading 20 histories
 
 ## Phase 5: Attachments (PR 2)
 
