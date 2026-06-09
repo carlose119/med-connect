@@ -21,7 +21,7 @@ declare(strict_types=1);
  *
  * 1-indexed line numbers locked in agenda-prd-update/proposal.md §"What changes".
  */
-test('AGENTS.md line 69 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)', function () {
+it('AGENTS.md line 69 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)', function () {
     $lines = file(base_path('openspec/AGENTS.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read AGENTS.md');
     // 1-indexed line 69 = 0-indexed $lines[68]. Spec scenario 1 (REQ-PRD-UPDATE-1)
@@ -29,7 +29,7 @@ test('AGENTS.md line 69 has correct Stack section PHP claim (PHP 8.3+, not 8.4+)
     expect($lines[68])->toContain('Laravel 13 (PHP 8.3+)');
 });
 
-test('AGENTS.md line 75 has correct Stack section Pest version (Pest 4, not Pest 3)', function () {
+it('AGENTS.md line 75 has correct Stack section Pest version (Pest 4, not Pest 3)', function () {
     $lines = file(base_path('openspec/AGENTS.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read AGENTS.md');
     // 1-indexed line 75 = 0-indexed $lines[74]. Spec scenario 2 (REQ-PRD-UPDATE-1)
@@ -38,7 +38,7 @@ test('AGENTS.md line 75 has correct Stack section Pest version (Pest 4, not Pest
     expect($lines[74])->toContain('Pest 4 (modern Laravel default)');
 });
 
-test('AGENTS.md line 58 has correct driver-aware unique partial index description', function () {
+it('AGENTS.md line 58 has correct driver-aware unique partial index description', function () {
     $lines = file(base_path('openspec/AGENTS.md'), FILE_IGNORE_NEW_LINES);
     expect($lines)->not->toBeFalse('Could not read AGENTS.md');
     // 1-indexed line 58 = 0-indexed $lines[57]. Spec scenario 3 (REQ-PRD-UPDATE-1)
