@@ -45,23 +45,7 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
             ->label('View Details')
             ->modalHeading('Appointment Details')
             ->form($this->getViewFormSchema())
-            ->modalWidth('lg')
-            ->fillForm(function (): array {
-                $record = $this->record;
-
-                if (! $record) {
-                    return [];
-                }
-
-                return [
-                    'patient_name' => $record->patient?->user?->name ?? 'N/A',
-                    'patient_phone' => $record->patient?->phone ?? 'N/A',
-                    'state' => $record->state?->value ?? 'pending',
-                    'start_time' => $record->start_time,
-                    'end_time' => $record->end_time,
-                    'notes' => $record->notes ?? '',
-                ];
-            });
+            ->modalWidth('lg');
     }
 
     public function fetchEvents(array $fetchInfo): array
@@ -126,29 +110,35 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
             TextInput::make('patient_name')
                 ->label('Patient')
                 ->disabled()
-                ->dehydrated(false),
+                ->dehydrated(false)
+                ->formatStateUsing(fn (): string => $this->record?->patient?->user?->name ?? '—'),
             TextInput::make('patient_phone')
                 ->label('Phone')
                 ->disabled()
-                ->dehydrated(false),
+                ->dehydrated(false)
+                ->formatStateUsing(fn (): string => $this->record?->patient?->phone ?? '—'),
             Select::make('state')
                 ->label('Status')
                 ->disabled()
                 ->dehydrated(false)
-                ->options($this->getStatusOptions()),
+                ->options($this->getStatusOptions())
+                ->formatStateUsing(fn (): string => $this->record?->state?->value ?? 'pending'),
             DateTimePicker::make('start_time')
                 ->label('Start')
                 ->disabled()
-                ->dehydrated(false),
+                ->dehydrated(false)
+                ->formatStateUsing(fn (): mixed => $this->record?->start_time),
             DateTimePicker::make('end_time')
                 ->label('End')
                 ->disabled()
-                ->dehydrated(false),
+                ->dehydrated(false)
+                ->formatStateUsing(fn (): mixed => $this->record?->end_time),
             Textarea::make('notes')
                 ->label('Notes')
                 ->rows(3)
                 ->disabled()
-                ->dehydrated(false),
+                ->dehydrated(false)
+                ->formatStateUsing(fn (): string => $this->record?->notes ?? ''),
         ];
     }
 
