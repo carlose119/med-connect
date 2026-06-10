@@ -3,18 +3,17 @@
 namespace App\Filament\Doctor\Widgets;
 
 use App\Models\Appointment;
+use App\Models\Patient;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
-use Illuminate\Support\Collection;
+use Filament\Forms\Components\TextInput;
 use Saade\FilamentFullCalendar\Actions\CreateAction;
 use Saade\FilamentFullCalendar\Actions\DeleteAction;
 use Saade\FilamentFullCalendar\Actions\EditAction;
 use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
-use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 
 class DoctorAppointmentCalendarWidget extends FullCalendarWidget
 {
@@ -46,7 +45,23 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
             ->label('View Details')
             ->modalHeading('Appointment Details')
             ->form($this->getViewFormSchema())
-            ->modalWidth('lg');
+            ->modalWidth('lg')
+            ->fillForm(function (): array {
+                $record = $this->record;
+
+                if (! $record) {
+                    return [];
+                }
+
+                return [
+                    'patient_name' => $record->patient?->user?->name ?? 'N/A',
+                    'patient_phone' => $record->patient?->phone ?? 'N/A',
+                    'state' => $record->state?->value ?? 'pending',
+                    'start_time' => $record->start_time,
+                    'end_time' => $record->end_time,
+                    'notes' => $record->notes ?? '',
+                ];
+            });
     }
 
     public function fetchEvents(array $fetchInfo): array
@@ -62,8 +77,7 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
 
         $appointments = Appointment::query()
             ->where('doctor_id', $doctor->id)
-            ->where('start_time', '>=', $start)
-            ->where('start_time', '<=', $end)
+            ->whereBetween('start_time', [$start, $end])
             ->with(['patient.user'])
             ->get();
 
@@ -72,9 +86,9 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
             'title' => $apt->patient->user->name,
             'start' => $apt->start_time->toIso8601String(),
             'end' => $apt->end_time->toIso8601String(),
-            'color' => $this->getStatusColor($apt->state->value ?? 'pending'),
+            'color' => $this->getStatusColor($apt->state?->value ?? 'pending'),
             'extendedProps' => [
-                'state' => $apt->state->value ?? 'pending',
+                'state' => $apt->state?->value ?? 'pending',
                 'patient_phone' => $apt->patient->phone,
                 'notes' => $apt->notes,
                 'patient_id' => $apt->patient_id,
@@ -84,15 +98,13 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
 
     public function getFormSchema(): array
     {
-        $doctor = auth()->user()->doctor;
-
         return [
             Select::make('patient_id')
                 ->label('Patient')
                 ->searchable()
                 ->preload()
-                ->getSearchResultsUsing(fn (string $search): array => $this->searchPatients($search))
-                ->getOptionLabelUsing(fn ($value): ?string => $this->getPatientLabel($value))
+                ->getSearchResultsUsing(fn (string $search): array => self::searchPatients($search))
+                ->getOptionLabelUsing(fn ($value): ?string => self::getPatientLabel($value))
                 ->required(),
             DateTimePicker::make('start_time')
                 ->label('Start Time')
@@ -111,20 +123,32 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
     protected function getViewFormSchema(): array
     {
         return [
+            TextInput::make('patient_name')
+                ->label('Patient')
+                ->disabled()
+                ->dehydrated(false),
+            TextInput::make('patient_phone')
+                ->label('Phone')
+                ->disabled()
+                ->dehydrated(false),
             Select::make('state')
                 ->label('Status')
                 ->disabled()
+                ->dehydrated(false)
                 ->options($this->getStatusOptions()),
             DateTimePicker::make('start_time')
-                ->label('Start Time')
-                ->disabled(),
+                ->label('Start')
+                ->disabled()
+                ->dehydrated(false),
             DateTimePicker::make('end_time')
-                ->label('End Time')
-                ->disabled(),
+                ->label('End')
+                ->disabled()
+                ->dehydrated(false),
             Textarea::make('notes')
                 ->label('Notes')
                 ->rows(3)
-                ->disabled(),
+                ->disabled()
+                ->dehydrated(false),
         ];
     }
 
@@ -136,16 +160,9 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
             return true;
         }
 
-        $start = Carbon::parse($event['start']);
-        $end = Carbon::parse($event['end']);
         $appointment->update([
-            'start_time' => $start,
-            'end_time' => $end,
-        ]);
-
-        $appointment->update([
-            'start_time' => $start,
-            'end_time' => $end,
+            'start_time' => Carbon::parse($event['start']),
+            'end_time' => Carbon::parse($event['end']),
         ]);
 
         $this->refreshRecords();
@@ -176,25 +193,24 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
         ];
     }
 
-    protected function searchPatients(string $search): array
+    private static function searchPatients(string $search): array
     {
-        return \App\Models\Patient::query()
+        return Patient::query()
             ->whereHas('user', fn ($q) => $q->where('name', 'like', "%{$search}%"))
             ->orWhere('identification_number', 'like', "%{$search}%")
             ->orWhere('phone', 'like', "%{$search}%")
             ->limit(20)
-            ->pluck('user.name', 'id')
+            ->get()
+            ->mapWithKeys(fn ($patient): array => [$patient->id => $patient->user->name])
             ->all();
     }
 
-    protected function getPatientLabel(mixed $value): ?string
+    private static function getPatientLabel(mixed $value): ?string
     {
         if (! $value) {
             return null;
         }
 
-        $patient = \App\Models\Patient::with('user')->find($value);
-
-        return $patient?->user->name;
+        return Patient::with('user')->find($value)?->user->name;
     }
 }
