@@ -47,6 +47,26 @@
             @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
+        <div>
+            <label for="birth_date" class="block text-sm font-medium text-gray-700">Birth Date</label>
+            <input type="date" name="birth_date" id="birth_date"
+                value="{{ old('birth_date', $patient->birth_date?->format('Y-m-d')) }}"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            @error('birth_date') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
+            <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
+            <select name="gender" id="gender"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select</option>
+                <option value="male" {{ old('gender', $patient->gender) === 'male' ? 'selected' : '' }}>Male</option>
+                <option value="female" {{ old('gender', $patient->gender) === 'female' ? 'selected' : '' }}>Female</option>
+                <option value="other" {{ old('gender', $patient->gender) === 'other' ? 'selected' : '' }}>Other</option>
+            </select>
+            @error('gender') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
         <div class="flex justify-end">
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
                 Save Changes

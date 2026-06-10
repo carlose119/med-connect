@@ -28,6 +28,8 @@ class ProfileController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'identification_number' => ['required', 'string', 'max:50', 'unique:patients,identification_number,'.$patient->id],
             'phone' => ['nullable', 'string', 'max:20'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
+            'gender' => ['nullable', 'string', 'in:male,female,other'],
         ]);
 
         $user->update([
@@ -38,6 +40,8 @@ class ProfileController extends Controller
         $patient->update([
             'identification_number' => $validated['identification_number'],
             'phone' => $validated['phone'] ?? $patient->phone,
+            'birth_date' => $validated['birth_date'] ?? $patient->birth_date,
+            'gender' => $validated['gender'] ?? $patient->gender,
         ]);
 
         return redirect(route('patient.profile'))->with('status', 'Profile updated successfully.');

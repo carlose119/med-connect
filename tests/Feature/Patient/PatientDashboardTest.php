@@ -51,3 +51,57 @@ it('shows an empty-state message when the patient has no appointments', function
     $response->assertOk();
     $response->assertSee('No upcoming appointments');
 });
+
+it('shows past appointments with completed, cancelled, and no_show status', function (): void {
+    $patient = Patient::factory()->create();
+    $user = $patient->user;
+
+    $cardiology = Specialty::factory()->create(['name' => 'Cardiology']);
+    $doctor = Doctor::factory()->create(['specialty_id' => $cardiology->id]);
+
+    Appointment::factory()->create([
+        'doctor_id' => $doctor->id,
+        'patient_id' => $patient->id,
+        'start_time' => now()->subDays(5)->setTime(10, 0),
+        'end_time' => now()->subDays(5)->setTime(10, 30),
+        'state' => 'completed',
+    ]);
+
+    Appointment::factory()->create([
+        'doctor_id' => $doctor->id,
+        'patient_id' => $patient->id,
+        'start_time' => now()->subDays(10)->setTime(14, 0),
+        'end_time' => now()->subDays(10)->setTime(14, 30),
+        'state' => 'cancelled',
+    ]);
+
+    $response = $this->actingAs($user)->get('/patient/dashboard');
+    $response->assertOk();
+
+    $response->assertSee('Past Appointments');
+    $response->assertSee('completed');
+    $response->assertSee('cancelled');
+});
+
+it('does not show cancelled upcoming appointments in the upcoming section', function (): void {
+    $patient = Patient::factory()->create();
+    $user = $patient->user;
+
+    $cardiology = Specialty::factory()->create(['name' => 'Cardiology']);
+    $doctor = Doctor::factory()->create(['specialty_id' => $cardiology->id]);
+
+    // An appointment cancelled in the past should only appear in Past Appointments
+    Appointment::factory()->create([
+        'doctor_id' => $doctor->id,
+        'patient_id' => $patient->id,
+        'start_time' => now()->addDays(3)->setTime(10, 0),
+        'end_time' => now()->addDays(3)->setTime(10, 30),
+        'state' => 'cancelled',
+    ]);
+
+    $response = $this->actingAs($user)->get('/patient/dashboard');
+    $response->assertOk();
+
+    // Upcoming section should be empty
+    $response->assertSee('No upcoming appointments');
+});

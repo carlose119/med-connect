@@ -45,6 +45,8 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'identification_number' => ['required', 'string', 'max:50', 'unique:patients'],
+            'phone' => ['required', 'string', 'max:20'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
@@ -59,7 +61,8 @@ class AuthController extends Controller
 
             Patient::create([
                 'user_id' => $user->id,
-                'identification_number' => 'TEMP-'.$user->id,
+                'identification_number' => $validated['identification_number'],
+                'phone' => $validated['phone'],
             ]);
 
             return $user;

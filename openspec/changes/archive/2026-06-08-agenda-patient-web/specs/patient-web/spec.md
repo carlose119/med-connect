@@ -7,18 +7,23 @@ The patient web is a self-service browser UI for patients to register, authentic
 ## Requirements
 
 ### Requirement: Patient Registration
-The system MUST allow a visitor to register as a patient with name, email, and password. Registration MUST create a User with role `patient` and a Patient profile.
+The system MUST allow a visitor to register as a patient with name, identification number (DNI/Cédula), phone, email, and password. Registration MUST create a User with role `patient` and a Patient profile.
 
 #### Scenario: Happy path registration
-- GIVEN a visitor with valid name, email, and password
+- GIVEN a visitor with valid name, identification number, phone, email, and password
 - WHEN the visitor submits the registration form at `/patient/register`
-- THEN a User with role `patient` and a Patient profile are created
+- THEN a User with role `patient` and a Patient profile are created with the provided data
 - AND the visitor is redirected to `/patient/dashboard` as an authenticated session
 
 #### Scenario: Duplicate email is rejected
 - GIVEN an existing user with email `a@b.com`
 - WHEN a visitor attempts to register with email `a@b.com`
 - THEN registration fails and the form shows a duplicate-email error
+
+#### Scenario: Duplicate identification number is rejected
+- GIVEN an existing patient with identification number `DNI-11111111`
+- WHEN a visitor attempts to register with identification number `DNI-11111111`
+- THEN registration fails and the form shows a duplicate-identification-number error
 
 ### Requirement: Patient Authentication
 The system MUST authenticate patients via the web guard session. The login form MUST be at `/patient/login`.
@@ -34,10 +39,10 @@ The system MUST authenticate patients via the web guard session. The login form 
 - THEN the system shows a generic auth error and does NOT create a session
 
 ### Requirement: Patient Dashboard
-The system MUST display the authenticated patient's upcoming appointments (date, time, doctor name, specialty, status) at `/patient/dashboard`.
+The system MUST display the authenticated patient's upcoming appointments (date, time, doctor name, specialty, status) at `/patient/dashboard`. The dashboard also shows past appointments (completed, cancelled, no_show) for reference.
 
 #### Scenario: Dashboard shows upcoming appointments
-- GIVEN a patient with 2 pending or confirmed appointments
+- GIVEN a patient with 2 pending or confirmed appointments in the future
 - WHEN the patient visits `/patient/dashboard`
 - THEN the page lists both appointments with date, time, doctor name, specialty, and status
 
@@ -45,6 +50,16 @@ The system MUST display the authenticated patient's upcoming appointments (date,
 - GIVEN a patient with zero appointments
 - WHEN the patient visits `/patient/dashboard`
 - THEN the page shows an empty-state message
+
+#### Scenario: Dashboard shows past appointments
+- GIVEN a patient with past appointments in completed, cancelled, or no_show states
+- WHEN the patient visits `/patient/dashboard`
+- THEN the page shows a "Past Appointments" section listing up to 10 recent past appointments with their status
+
+#### Scenario: Dashboard does not show cancelled upcoming appointments in the upcoming section
+- GIVEN a patient with an upcoming appointment in cancelled state
+- WHEN the patient visits `/patient/dashboard`
+- THEN the cancelled appointment does not appear in the Upcoming Appointments section
 
 ### Requirement: Doctor Listing
 The system MUST allow a patient to browse doctors with specialty filtering. Each doctor card MUST show the doctor's name and specialty.
@@ -84,6 +99,19 @@ The system MUST allow a patient to cancel their own appointment within the 24h w
 - GIVEN a pending appointment starting at `now + 12h`
 - WHEN the patient attempts to cancel it
 - THEN the cancellation is rejected and the system shows a "too close to appointment" error
+
+### Requirement: Patient Profile
+The system MUST allow an authenticated patient to view and update their profile data. Editable fields include: name, email, identification number, phone, birth date, and gender.
+
+#### Scenario: Profile shows current data
+- GIVEN an authenticated patient with profile data
+- WHEN the patient visits `/patient/profile`
+- THEN the page shows all current profile values
+
+#### Scenario: Profile updates correctly
+- GIVEN an authenticated patient
+- WHEN the patient submits the profile form with valid data
+- THEN the profile is updated and a success message is shown
 
 ### Requirement: Existing Backend Integrity
 The system MUST NOT modify, remove, or interfere with any existing API routes, admin panel routes, or backend behavior. All existing 18 Sanctum API routes and the Filament admin panel MUST remain fully functional.

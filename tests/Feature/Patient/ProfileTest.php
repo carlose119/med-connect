@@ -36,3 +36,23 @@ it('updates the profile with new name, email, and identification number', functi
     expect($patient->identification_number)->toBe('DNI-12345678');
     expect($patient->phone)->toBe('+541112345678');
 });
+
+it('updates the profile with birth date and gender', function (): void {
+    $patient = Patient::factory()->create();
+    $user = $patient->user;
+
+    $response = $this->actingAs($user)->post('/patient/profile', [
+        'name' => $user->name,
+        'email' => $user->email,
+        'identification_number' => $patient->identification_number,
+        'phone' => $patient->phone,
+        'birth_date' => '1990-05-15',
+        'gender' => 'female',
+    ]);
+
+    $response->assertRedirect('/patient/profile');
+
+    $patient->refresh();
+    expect($patient->birth_date->format('Y-m-d'))->toBe('1990-05-15');
+    expect($patient->gender)->toBe('female');
+});

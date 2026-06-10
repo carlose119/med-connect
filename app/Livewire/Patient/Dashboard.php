@@ -13,15 +13,28 @@ class Dashboard extends Component
 {
     public function render(): View
     {
-        $appointments = auth()->user()->patient
+        $patient = auth()->user()->patient;
+
+        $upcomingAppointments = $patient
             ->appointments()
             ->with(['doctor.user', 'doctor.specialty'])
+            ->whereIn('state', ['pending', 'confirmed'])
             ->where('start_time', '>=', now())
             ->orderBy('start_time')
             ->get();
 
+        $pastAppointments = $patient
+            ->appointments()
+            ->with(['doctor.user', 'doctor.specialty'])
+            ->whereIn('state', ['completed', 'cancelled', 'no_show'])
+            ->where('start_time', '<', now())
+            ->orderByDesc('start_time')
+            ->limit(10)
+            ->get();
+
         return view('patient.dashboard', [
-            'appointments' => $appointments,
+            'upcomingAppointments' => $upcomingAppointments,
+            'pastAppointments' => $pastAppointments,
         ]);
     }
 }
