@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\DoctorSchedules\Schemas;
 
+use App\Models\Doctor;
 use App\Rules\ScheduleDurationPositive;
 use App\Rules\ScheduleEndAfterStart;
 use Filament\Forms\Components\Hidden;
@@ -15,10 +16,19 @@ class DoctorScheduleForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $isAdmin = auth()->user()?->isAdmin();
+
         return $schema
             ->components([
-                Hidden::make('doctor_id')
-                    ->default(fn () => auth()->user()?->doctor?->id),
+                // Admins pick the doctor; doctors get auto-assigned via mutateFormDataBeforeCreate
+                $isAdmin
+                    ? Select::make('doctor_id')
+                        ->label('Doctor')
+                        ->required()
+                        ->options(Doctor::query()->with('user')->get()->mapWithKeys(
+                            fn (Doctor $d) => [$d->id => $d->user->name],
+                        ))
+                    : Hidden::make('doctor_id'),
                 Select::make('day_of_week')
                     ->required()
                     ->options([
