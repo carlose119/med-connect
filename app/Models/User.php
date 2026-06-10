@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role'])]
+#[Fillable(['name', 'email', 'password', 'role', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -32,6 +32,7 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -48,6 +49,11 @@ class User extends Authenticatable implements FilamentUser
     public function isPatient(): bool
     {
         return $this->role === 'patient';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->is_active !== false;
     }
 
     public function canAccessPanel(Panel $panel): bool

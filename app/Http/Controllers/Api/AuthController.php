@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\Api\UserResource;
+use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
@@ -11,6 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * Auth surface for the agenda-http API (REQ-API-7 auth scenarios).
@@ -105,5 +109,75 @@ class AuthController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    /**
+     * POST /api/auth/register — patient self-registration for mobile app.
+     *
+     * Wire shape:
+     *   201 { "data": { "user": <UserResource>, "token": "<plaintext>" } }
+     *
+     * Validation mirrors the patient-web registration (RF-1.3):
+     *   - name: required, string, max 255
+     *   - email: required, email, unique:users
+     *   - password: required, min 8, confirmed
+     *   - identification_number: required, unique:patients
+     *   - phone: required, max 20
+     *   - birth_date: optional, date (for mobile profile completeness)
+     *   - gender: optional, in:male,female,other
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+            'identification_number' => ['required', 'string', 'max:50', 'unique:patients'],
+            'phone' => ['required', 'string', 'max:20'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
+            'gender' => ['nullable', 'string', 'in:male,female,other'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'The given data was invalid.',
+                    'details' => $validator->errors()->toArray(),
+                ],
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $user = DB::transaction(function () use ($validated): User {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => bcrypt($validated['password']),
+                'role' => 'patient',
+                'is_active' => true,
+            ]);
+
+            Patient::create([
+                'user_id' => $user->id,
+                'identification_number' => $validated['identification_number'],
+                'phone' => $validated['phone'],
+                'birth_date' => $validated['birth_date'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+            ]);
+
+            return $user;
+        });
+
+        $deviceName = (string) ($request->input('device_name') ?? 'mobile-app');
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        return (new JsonResponse([
+            'data' => [
+                'user' => new UserResource($user),
+                'token' => $token,
+            ],
+        ]))->setStatusCode(201);
     }
 }

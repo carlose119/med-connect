@@ -63,6 +63,10 @@ class UserForm
                 Checkbox::make('is_super_admin')
                     ->label('Super Admin (Shield)')
                     ->visible(fn (string $operation): bool => $operation === 'edit'),
+                Checkbox::make('is_active')
+                    ->label('Active (can login)')
+                    ->default(true)
+                    ->visible(fn (string $operation): bool => $operation === 'edit'),
             ]);
     }
 }

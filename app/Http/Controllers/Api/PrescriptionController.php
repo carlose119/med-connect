@@ -10,6 +10,7 @@ use App\Http\Requests\Api\UpdatePrescriptionRequest;
 use App\Http\Resources\Api\PrescriptionResource;
 use App\Models\Appointment;
 use App\Models\Prescription;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -145,5 +146,24 @@ class PrescriptionController extends Controller
         return (new PrescriptionResource($prescription))
             ->response()
             ->setStatusCode(200);
+    }
+
+    public function pdf(Prescription $prescription): \Illuminate\Http\Response
+    {
+        $this->authorize('view', $prescription);
+
+        $prescription->load(['doctor.user', 'patient.user', 'items']);
+
+        $data = [
+            'prescription' => $prescription,
+            'doctor' => $prescription->doctor,
+            'patient' => $prescription->patient,
+            'items' => $prescription->items,
+            'issued_at' => $prescription->issued_at->format('d/m/Y'),
+        ];
+
+        $pdf = Pdf::loadView('pdf.prescription', $data);
+
+        return $pdf->download("RX-{$prescription->unique_code}.pdf");
     }
 }

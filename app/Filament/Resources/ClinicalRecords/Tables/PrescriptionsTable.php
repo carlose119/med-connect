@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ClinicalRecords\Tables;
 
+use App\Models\Prescription;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -67,7 +68,14 @@ class PrescriptionsTable
                             );
                     }),
             ])
-            ->recordActions([])
+            ->recordActions([
+                \Filament\Actions\Action::make('downloadPdf')
+                    ->label('PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->url(fn (Prescription $record): string => url("/api/prescriptions/{$record->id}/pdf"))
+                    ->openUrlInNewTab(),
+            ])
             ->headerActions([]);
     }
 }

@@ -38,6 +38,7 @@ use Illuminate\Support\Facades\Route;
 // throws AuthenticationException.
 Route::middleware([ResolveTimezone::class])->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/register', [AuthController::class, 'register']);
 });
 
 Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): void {
@@ -77,5 +78,6 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::post('/prescriptions', [PrescriptionController::class, 'store']);
     Route::get('/prescriptions/{prescription}', [PrescriptionController::class, 'show']);
     Route::put('/prescriptions/{prescription}', [PrescriptionController::class, 'update']);
+    Route::get('/prescriptions/{prescription}/pdf', [PrescriptionController::class, 'pdf']);
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });

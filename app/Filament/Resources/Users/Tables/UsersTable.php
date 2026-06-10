@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Filament\Resources\Users\Actions\ToggleUserStatusAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -33,6 +34,12 @@ class UsersTable
                         default => 'gray',
                     })
                     ->sortable(),
+                TextColumn::make('is_active')
+                    ->label('Status')
+                    ->badge()
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Activo' : 'Suspendido')
+                    ->color(fn (bool $state): string => $state ? 'success' : 'warning')
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -42,6 +49,7 @@ class UsersTable
                 //
             ])
             ->recordActions([
+                ToggleUserStatusAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([

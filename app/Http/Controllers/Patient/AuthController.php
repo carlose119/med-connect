@@ -25,6 +25,15 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
+        // Check if user exists and is active before attempting login
+        $user = User::where('email', $credentials['email'])->first();
+
+        if ($user && ! $user->isActive()) {
+            return back()->withErrors([
+                'email' => 'Your account has been suspended. Please contact the administrator.',
+            ])->onlyInput('email');
+        }
+
         if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
