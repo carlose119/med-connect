@@ -1,8 +1,8 @@
 <?php
 
 use App\Filament\Resources\ClinicalRecords\MedicalHistoryResource;
+use App\Filament\Resources\ClinicalRecords\Pages\CreateMedicalHistory;
 use App\Filament\Resources\ClinicalRecords\RelationManagers\MedicalNotesRelationManager;
-use App\Filament\Resources\ClinicalRecords\Schemas\MedicalHistoryForm;
 use App\Models\Doctor;
 use App\Models\MedicalHistory;
 use App\Models\Patient;
@@ -21,12 +21,27 @@ it('navigation is in Clinical group with correct icon and sort', function (): vo
     expect(MedicalHistoryResource::getNavigationSort())->toBe(1);
 });
 
-it('cannot create a medical history', function (): void {
+it('doctors and admins can create a medical history', function (): void {
+    $doctorUser = User::factory()->doctor()->create();
+    $adminUser = User::factory()->admin()->create();
+
+    // Doctor can create
+    $this->actingAs($doctorUser);
+    expect(MedicalHistoryResource::canCreate())->toBeTrue();
+
+    // Admin can create
+    $this->actingAs($adminUser);
+    expect(MedicalHistoryResource::canCreate())->toBeTrue();
+});
+
+it('patients cannot create a medical history', function (): void {
+    $patientUser = User::factory()->patient()->create();
+
+    $this->actingAs($patientUser);
     expect(MedicalHistoryResource::canCreate())->toBeFalse();
 });
 
 it('cannot edit a medical history', function (): void {
-    $user = User::factory()->admin()->create();
     $patientUser = User::factory()->patient()->create();
     $patient = Patient::factory()->for($patientUser)->create();
     $doctorUser = User::factory()->doctor()->create();
@@ -37,7 +52,6 @@ it('cannot edit a medical history', function (): void {
 });
 
 it('cannot delete a medical history', function (): void {
-    $user = User::factory()->admin()->create();
     $patientUser = User::factory()->patient()->create();
     $patient = Patient::factory()->for($patientUser)->create();
     $doctorUser = User::factory()->doctor()->create();
@@ -51,13 +65,12 @@ it('registers MedicalNotesRelationManager in getRelations', function (): void {
     expect(MedicalHistoryResource::getRelations())->toContain(MedicalNotesRelationManager::class);
 });
 
-it('registers only index and edit pages', function (): void {
+it('registers index, create, and edit pages', function (): void {
     $pages = MedicalHistoryResource::getPages();
-    expect($pages)->toHaveKeys(['index', 'edit'])
-        ->not->toHaveKeys(['create']);
+    expect($pages)->toHaveKeys(['index', 'create', 'edit']);
 });
 
-it('form class exposes patient_name field', function (): void {
+it('edit form class exposes patient_name field', function (): void {
     $patientUser = User::factory()->patient()->create();
     $patient = Patient::factory()->for($patientUser)->create();
     $doctorUser = User::factory()->doctor()->create();
@@ -70,7 +83,7 @@ it('form class exposes patient_name field', function (): void {
         ->assertFormFieldExists('patient_name');
 });
 
-it('form class exposes primary_doctor_name field', function (): void {
+it('edit form class exposes primary_doctor_name field', function (): void {
     $patientUser = User::factory()->patient()->create();
     $patient = Patient::factory()->for($patientUser)->create();
     $doctorUser = User::factory()->doctor()->create();
@@ -83,7 +96,7 @@ it('form class exposes primary_doctor_name field', function (): void {
         ->assertFormFieldExists('primary_doctor_name');
 });
 
-it('form class exposes opened_at field', function (): void {
+it('edit form class exposes opened_at field', function (): void {
     $patientUser = User::factory()->patient()->create();
     $patient = Patient::factory()->for($patientUser)->create();
     $doctorUser = User::factory()->doctor()->create();
@@ -96,7 +109,7 @@ it('form class exposes opened_at field', function (): void {
         ->assertFormFieldExists('opened_at');
 });
 
-it('form fields are disabled', function (): void {
+it('edit form fields are disabled', function (): void {
     $patientUser = User::factory()->patient()->create();
     $patient = Patient::factory()->for($patientUser)->create();
     $doctorUser = User::factory()->doctor()->create();
@@ -109,4 +122,12 @@ it('form fields are disabled', function (): void {
         ->assertFormFieldDisabled('patient_name')
         ->assertFormFieldDisabled('primary_doctor_name')
         ->assertFormFieldDisabled('opened_at');
+});
+
+it('create page renders with create form', function (): void {
+    $doctorUser = User::factory()->doctor()->create();
+
+    Livewire::actingAs($doctorUser)
+        ->test(CreateMedicalHistory::class)
+        ->assertFormFieldExists('patient_id');
 });

@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\ClinicalRecords;
 
+use App\Filament\Resources\ClinicalRecords\Pages\CreateMedicalHistory;
 use App\Filament\Resources\ClinicalRecords\Pages\EditMedicalHistory;
 use App\Filament\Resources\ClinicalRecords\Pages\ListMedicalHistories;
 use App\Filament\Resources\ClinicalRecords\RelationManagers\MedicalNotesRelationManager;
+use App\Filament\Resources\ClinicalRecords\Schemas\CreateMedicalHistoryForm;
 use App\Filament\Resources\ClinicalRecords\Schemas\MedicalHistoryForm;
 use App\Filament\Resources\ClinicalRecords\Tables\MedicalHistoriesTable;
 use App\Models\MedicalHistory;
@@ -59,13 +61,16 @@ class MedicalHistoryResource extends Resource
     {
         return [
             'index' => ListMedicalHistories::route('/'),
+            'create' => CreateMedicalHistory::route('/create'),
             'edit' => EditMedicalHistory::route('/{record}/edit'),
         ];
     }
 
     public static function canCreate(): bool
     {
-        return false;
+        // Only doctors can manually create a medical history.
+        // Admins can also create (they manage the system).
+        return auth()->user()?->isDoctor() || auth()->user()?->isAdmin();
     }
 
     public static function canEdit($record): bool
