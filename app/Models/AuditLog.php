@@ -19,6 +19,23 @@ class AuditLog extends Model
     /** @use HasFactory<AuditLogFactory> */
     use HasFactory;
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::saving(static function (AuditLog $log): void {
+            // Allow create (model does not exist yet), reject update
+            // (model already exists — append-only contract).
+            if ($log->exists) {
+                throw new \LogicException('Audit logs are immutable. Update is not permitted.');
+            }
+        });
+
+        static::deleting(static function (AuditLog $log): void {
+            throw new \LogicException('Audit logs are immutable. Delete is not permitted.');
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'actor_type',

@@ -74,5 +74,8 @@ Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): 
     Route::get('/medical-notes/{medical_note}/attachments', [MedicalAttachmentController::class, 'index']);
     Route::delete('/medical-attachments/{medical_attachment}', [MedicalAttachmentController::class, 'destroy']);
     Route::get('/prescriptions', [PrescriptionController::class, 'index']);
+    Route::post('/prescriptions', [PrescriptionController::class, 'store']);
+    Route::get('/prescriptions/{prescription}', [PrescriptionController::class, 'show']);
+    Route::put('/prescriptions/{prescription}', [PrescriptionController::class, 'update']);
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });

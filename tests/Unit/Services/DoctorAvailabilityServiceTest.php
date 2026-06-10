@@ -110,6 +110,53 @@ it('adds slots from an extra_availability override on top of the recurring rule'
         ->and($slotStarts)->toContain('11:30');
 });
 
+it('returns no slots from an inactive recurring rule', function () {
+    DoctorSchedule::factory()->for($this->doctor)->inactive()->create([
+        'day_of_week' => $this->dayOfWeek,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+        'slot_duration_minutes' => 30,
+    ]);
+
+    $slots = $this->service->slots($this->doctor->id, $this->targetDate);
+
+    expect($slots)->toBeEmpty();
+});
+
+it('excludes slots within a block override time range while keeping slots outside it', function () {
+    DoctorSchedule::factory()->for($this->doctor)->create([
+        'day_of_week' => $this->dayOfWeek,
+        'start_time' => '09:00:00',
+        'end_time' => '17:00:00',
+        'slot_duration_minutes' => 30,
+        'is_active' => true,
+    ]);
+
+    // Block from 12:00 to 13:00 — should remove the 12:00 and 12:30 slots.
+    DoctorScheduleOverride::factory()
+        ->for($this->doctor)
+        ->block()
+        ->create([
+            'date' => $this->targetDate->toDateString(),
+            'start_time' => '12:00:00',
+            'end_time' => '13:00:00',
+        ]);
+
+    $slots = $this->service->slots($this->doctor->id, $this->targetDate);
+
+    // 16 total — 2 blocked = 14.
+    $slotStarts = array_map(fn ($s) => $s['start']->format('H:i'), $slots);
+    expect($slots)->toHaveCount(14)
+        ->and($slotStarts)->not->toContain('12:00')
+        ->and($slotStarts)->not->toContain('12:30')
+        // Morning slots untouched
+        ->and($slotStarts)->toContain('09:00')
+        ->and($slotStarts)->toContain('11:30')
+        // Afternoon slots untouched
+        ->and($slotStarts)->toContain('13:00')
+        ->and($slotStarts)->toContain('16:30');
+});
+
 it('omits a slot that is already covered by a non-cancelled booked appointment', function () {
     DoctorSchedule::factory()->for($this->doctor)->create([
         'day_of_week' => $this->dayOfWeek,

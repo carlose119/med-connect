@@ -12,7 +12,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * table).
  *
  * Renders the canonical set: id, appointment_id, doctor_id,
- * patient_id, unique_code, issued_at (in resolved TZ), status.
+ * patient_id, unique_code, issued_at (in resolved TZ), status,
+ * cancellation_reason, doctor sub-object, and nested items.
  */
 class PrescriptionResource extends JsonResource
 {
@@ -36,10 +37,16 @@ class PrescriptionResource extends JsonResource
             'id' => $rx->id,
             'appointment_id' => $rx->appointment_id,
             'doctor_id' => $rx->doctor_id,
+            'doctor' => [
+                'id' => $rx->doctor?->id,
+                'name' => $rx->doctor?->user?->name,
+            ],
             'patient_id' => $rx->patient_id,
             'unique_code' => $rx->unique_code,
             'issued_at' => $rx->issued_at ? $format($rx->issued_at) : null,
             'status' => $rx->status,
+            'cancellation_reason' => $rx->cancellation_reason,
+            'items' => PrescriptionItemResource::collection($rx->items),
         ];
     }
 }
