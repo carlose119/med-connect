@@ -40,9 +40,9 @@ export async function setTokens(
   token: string,
   refreshToken: string,
 ): Promise<void> {
-  await AsyncStorage.multiSet([
-    [KEYS.AUTH_TOKEN, token],
-    [KEYS.AUTH_REFRESH_TOKEN, refreshToken],
+  await Promise.all([
+    AsyncStorage.setItem(KEYS.AUTH_TOKEN, token),
+    AsyncStorage.setItem(KEYS.AUTH_REFRESH_TOKEN, refreshToken),
   ]);
 }
 
@@ -65,9 +65,9 @@ export async function setUser(user: User): Promise<void> {
 // Clear all auth data (used on logout or refresh failure)
 
 export async function clearAll(): Promise<void> {
-  await AsyncStorage.multiRemove([
-    KEYS.AUTH_TOKEN,
-    KEYS.AUTH_REFRESH_TOKEN,
-    KEYS.AUTH_USER,
+  await Promise.all([
+    AsyncStorage.removeItem(KEYS.AUTH_TOKEN),
+    AsyncStorage.removeItem(KEYS.AUTH_REFRESH_TOKEN),
+    AsyncStorage.removeItem(KEYS.AUTH_USER),
   ]);
 }

@@ -3,7 +3,10 @@ import type { ApiError, ApiErrorCode } from '../types/auth';
 import * as tokenStorage from './tokenStorage';
 
 const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+  String(
+    (globalThis as { process?: { env?: Record<string, string> } })
+      .process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000',
+  );
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
