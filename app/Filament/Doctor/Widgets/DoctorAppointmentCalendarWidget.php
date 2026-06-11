@@ -7,6 +7,7 @@ use App\Models\Patient;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -33,17 +34,21 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
 
     protected function modalActions(): array
     {
-        return [
-            Action::make('openConsultation')
-                ->label('Open Consultation')
-                ->url(fn (): string => $this->record
-                    ? route('doctor.consultation', ['patient_id' => $this->record->patient_id])
-                    : '#')
+        $actions = [];
+
+        // Add consultation link if we have a record with a patient
+        if ($this->record && $this->record->patient_id) {
+            $actions[] = Action::make('openConsultation')
+                ->label('Abrir Consulta')
+                ->url(route('doctor.consultation', ['patient_id' => $this->record->patient_id]))
                 ->icon('heroicon-o-clipboard-document-check')
-                ->color('primary'),
-            EditAction::make(),
-            DeleteAction::make(),
-        ];
+                ->color('primary');
+        }
+
+        $actions[] = EditAction::make();
+        $actions[] = DeleteAction::make();
+
+        return $actions;
     }
 
     public function onEventClick(array $event): void
@@ -139,7 +144,7 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
 
     protected function getViewFormSchema(): array
     {
-        return [
+        $schema = [
             TextInput::make('patient_name')
                 ->label('Patient')
                 ->disabled()
@@ -167,6 +172,21 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
                 ->rows(3)
                 ->formatStateUsing(fn ($record) => $record?->notes ?? ''),
         ];
+
+        // Add consultation link if record has a patient
+        if ($this->record && $this->record->patient_id) {
+            $consultationUrl = route('doctor.consultation', ['patient_id' => $this->record->patient_id]);
+            $schema[] = Placeholder::make('consultation_link')
+                ->label('Consultation')
+                ->content(fn () => new \Illuminate\Support\HtmlString(
+                    '<a href="'.$consultationUrl.'" target="_blank" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">'.
+                    '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">'.
+                    '<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>'.
+                    'Abrir Consulta</a>'
+                ));
+        }
+
+        return $schema;
     }
 
     public function onEventDrop(array $event, array $oldEvent, array $relatedEvents, array $delta, ?array $oldResource, ?array $newResource): bool
