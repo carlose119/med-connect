@@ -34,6 +34,13 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
     protected function modalActions(): array
     {
         return [
+            Action::make('openConsultation')
+                ->label('Open Consultation')
+                ->url(fn (): string => $this->record
+                    ? route('doctor.consultation', ['patient_id' => $this->record->patient_id])
+                    : '#')
+                ->icon('heroicon-o-clipboard-document-check')
+                ->color('primary'),
             EditAction::make(),
             DeleteAction::make(),
         ];
