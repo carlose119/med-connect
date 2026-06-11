@@ -34,21 +34,10 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
 
     protected function modalActions(): array
     {
-        $actions = [];
-
-        // Add consultation link if we have a record with a patient
-        if ($this->record && $this->record->patient_id) {
-            $actions[] = Action::make('openConsultation')
-                ->label('Abrir Consulta')
-                ->url(route('doctor.consultation', ['patient_id' => $this->record->patient_id]))
-                ->icon('heroicon-o-clipboard-document-check')
-                ->color('primary');
-        }
-
-        $actions[] = EditAction::make();
-        $actions[] = DeleteAction::make();
-
-        return $actions;
+        return [
+            EditAction::make(),
+            DeleteAction::make(),
+        ];
     }
 
     public function onEventClick(array $event): void
