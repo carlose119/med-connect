@@ -29,6 +29,12 @@ class BookAppointment extends Component
 
     public function mount(Doctor $doctor): void
     {
+        $user = auth()->user();
+
+        if (! $user->isPatient() || $user->patient === null) {
+            abort(403, 'Solo pacientes pueden reservar citas.');
+        }
+
         $this->doctor = $doctor->load(['user', 'specialty']);
     }
 

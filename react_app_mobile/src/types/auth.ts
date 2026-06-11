@@ -20,6 +20,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  created_at?: string;
 }
 
 export interface AuthState {

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
-use App\Mail\DoctorAccountCreated;
+use App\Mail\InvitationActivated;
 use App\Models\AuditLog;
 use App\Models\Doctor;
 use App\Models\User;
@@ -11,7 +11,6 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class CreateUser extends CreateRecord
 {
@@ -24,60 +23,81 @@ class CreateUser extends CreateRecord
      * also emit an `audit_logs` row — the admin-audit spec requires every
      * admin action to leave a trail (actor, action verb, subject, metadata).
      *
-     * For doctors, a temporary password is auto-generated and the account
-     * activation email is dispatched (queued) after the transaction commits.
+     * For doctors, no password is set here — the doctor activates their
+     * account via the invitation link email, where they set their own password.
+     * Re-invitation is handled: if an inactive doctor with the same email
+     * already exists, their token is regenerated.
      */
     protected function handleRecordCreation(array $data): Model
     {
-        $tempPassword = null;
+        return DB::transaction(function () use ($data) {
+            $isDoctor = ($data['role'] ?? '') === 'doctor';
+            $rawToken = null;
 
-        // Auto-generate temp password for doctors if none provided
-        if (($data['role'] ?? '') === 'doctor' && empty($data['password'])) {
-            $tempPassword = Str::upper(Str::random(8));
-            $data['password'] = bcrypt($tempPassword);
-        }
+            if ($isDoctor) {
+                // Re-invitation: reuse existing inactive doctor with same email
+                $existingUser = User::where('email', $data['email'])
+                    ->where('role', 'doctor')
+                    ->where(fn ($q) => $q->where('is_active', false)->orWhereNull('is_active'))
+                    ->first();
 
-        return DB::transaction(function () use ($data, $tempPassword) {
-            /** @var User $user */
-            $user = static::getModel()::create($data);
+                if ($existingUser !== null) {
+                    $user = $existingUser;
+                    $rawToken = $user->generateInvitationToken();
+                    $user->save();
+                    $doctor = $user->doctor;
+                } else {
+                    // Create new doctor (no password — doctor sets via invitation)
+                    $data['password'] = null;
+                    $data['is_active'] = false;
+                    $user = static::getModel()::create($data);
+                    $rawToken = $user->generateInvitationToken();
+                    $user->save();
 
-            $action = 'user.created';
-            $subjectType = User::class;
-            $subjectId = $user->id;
-            $metadata = [
-                'role' => $user->role,
-                'email' => $user->email,
-            ];
-
-            if ($user->role === 'doctor') {
-                $doctor = Doctor::create([
-                    'user_id' => $user->id,
-                    'specialty_id' => $data['specialty_id'] ?? null,
-                    'license_number' => $data['license_number'] ?? null,
-                ]);
-                $action = 'doctor.created';
-                $subjectType = Doctor::class;
-                $subjectId = $doctor->id;
-                $metadata = [
-                    'user_id' => $user->id,
-                    'specialty_id' => $doctor->specialty_id,
-                    'license_number' => $doctor->license_number,
-                    'temp_password_sent' => $tempPassword !== null,
-                ];
-
-                // Send the doctor account activation email (queued)
-                if ($tempPassword) {
-                    Mail::to($user->email)->queue(new DoctorAccountCreated($user, $tempPassword));
+                    // Create Doctor profile
+                    $doctor = Doctor::create([
+                        'user_id' => $user->id,
+                        'specialty_id' => $data['specialty_id'] ?? null,
+                        'license_number' => $data['license_number'] ?? null,
+                    ]);
                 }
+
+                // Queue invitation email
+                $expiresAt = now()->addDays(7);
+                Mail::to($user->email)->queue(new InvitationActivated($user, $rawToken, $expiresAt));
+
+                // Audit log
+                AuditLog::create([
+                    'user_id' => auth()->id(),
+                    'actor_type' => 'admin',
+                    'action' => 'doctor.created',
+                    'subject_type' => Doctor::class,
+                    'subject_id' => $doctor->id,
+                    'metadata' => [
+                        'user_id' => $user->id,
+                        'specialty_id' => $doctor->specialty_id,
+                        'license_number' => $doctor->license_number,
+                        'invitation_sent' => true,
+                    ],
+                    'ip_address' => request()?->ip(),
+                ]);
+
+                return $user;
             }
+
+            // Non-doctor: create normally
+            $user = static::getModel()::create($data);
 
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'actor_type' => 'admin',
-                'action' => $action,
-                'subject_type' => $subjectType,
-                'subject_id' => $subjectId,
-                'metadata' => $metadata,
+                'action' => 'user.created',
+                'subject_type' => User::class,
+                'subject_id' => $user->id,
+                'metadata' => [
+                    'role' => $user->role,
+                    'email' => $user->email,
+                ],
                 'ip_address' => request()?->ip(),
             ]);
 

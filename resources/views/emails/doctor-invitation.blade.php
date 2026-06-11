@@ -14,11 +14,9 @@
         .info-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 16px; margin: 16px 0; }
         .info-box p { margin: 6px 0; }
         .info-box strong { color: #1e40af; }
-        .credential-box { background: #1e293b; color: #f8fafc; border-radius: 6px; padding: 16px; margin: 20px 0; font-family: 'Courier New', monospace; font-size: 14px; }
-        .credential-box .label { color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
-        .credential-box .value { margin: 4px 0; }
-        .btn { display: inline-block; background: #1e40af; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin: 16px 0; }
+        .btn { display: inline-block; background: #1e40af; color: white; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; margin: 20px 0; font-size: 16px; }
         .warning { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; margin: 16px 0; font-size: 13px; color: #b45309; }
+        .expiry-note { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px; margin: 16px 0; font-size: 13px; color: #1e40af; }
         .footer { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 16px 32px; font-size: 12px; color: #6b7280; text-align: center; }
     </style>
 </head>
@@ -37,17 +35,16 @@
                 <p><strong>Rol:</strong> Médico</p>
             </div>
 
-            <p>Ingresá a tu cuenta con las siguientes credenciales:</p>
+            <p>Hacé clic en el siguiente botón para activar tu cuenta y establecer tu contraseña:</p>
 
-            <div class="credential-box">
-                <div class="label">Contraseña temporal</div>
-                <div class="value">{{ $tempPassword }}</div>
+            <a href="{{ $activationUrl }}" class="btn">Activar mi cuenta</a>
+
+            <div class="expiry-note">
+                📅 Este enlace expira el {{ $expiresAt->format('d/m/Y') }}.
             </div>
 
-            <a href="{{ $loginUrl }}" class="btn">Ingresar a MedConnect</a>
-
             <div class="warning">
-                ⚠️ Por seguridad, te recomendamos cambiar tu contraseña inmediatamente después de iniciar sesión.
+                ⚠️ Si no activás tu cuenta dentro de los 7 días, el enlace dejará de funcionar. Contactá al administrador para solicitar uno nuevo.
             </div>
 
             <p>Si tenés alguna duda o no solicitaste esta cuenta, contactá al administrador del sistema.</p>

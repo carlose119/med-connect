@@ -84,7 +84,7 @@ apiClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh')
+      !originalRequest.url?.includes('/api/v1/auth/refresh')
     ) {
       if (isRefreshing) {
         // Queue the request until refresh completes
@@ -103,7 +103,7 @@ apiClient.interceptors.response.use(
         const refreshToken = await tokenStorage.getRefreshToken();
         if (!refreshToken) throw new Error('No refresh token');
 
-        const response = await axios.post(`${BASE_URL}/api/auth/refresh`, {
+        const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
           refresh_token: refreshToken,
         });
 

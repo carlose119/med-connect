@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\MedicalAttachmentController;
 use App\Http\Controllers\Api\MedicalHistoryController;
+use App\Http\Controllers\Api\PatientMedicalHistoryController;
 use App\Http\Controllers\Api\MedicalNoteController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PrescriptionController;
@@ -36,49 +37,72 @@ use Illuminate\Support\Facades\Route;
 // request). The 401 UNAUTHENTICATED envelope for bad creds is
 // handled by the PR 1 exception handler when AuthController@login
 // throws AuthenticationException.
+// PRD Section 6 — All patient-facing endpoints use /api/v1/ prefix for
+// versioned API compliance. The unversioned /api/ aliases remain for
+// backward compatibility with existing clients (mobile-auth SDD).
 Route::middleware([ResolveTimezone::class])->group(function (): void {
+    // v1 — public auth
+    Route::prefix('v1')->group(function (): void {
+        Route::post('/auth/login', [AuthController::class, 'login']);
+        Route::post('/auth/register', [AuthController::class, 'register']);
+        Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+    });
+
+    // legacy — kept for backward compat
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 });
 
 Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): void {
-    // PR 4 — agenda-http — Auth surface (me + logout). The canonical
-    // current-user path is /api/auth/me (was /api/me in PR 1 + PR 3;
-    // the /api/me route + MeController were retired in T-API-46).
-    Route::get('/auth/me', [AuthController::class, 'me']);
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    // v1 — auth surface
+    Route::prefix('v1')->group(function (): void {
+        Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+    });
 
-    // PR 2 — agenda-http — Mutations.
-    // The 16 read endpoints land in PR 3.
-    Route::get('/appointments', [AppointmentController::class, 'index']);
-    Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
-    Route::post('/appointments', [AppointmentController::class, 'store']);
-    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
+    // v1 — appointments
+    Route::prefix('v1')->group(function (): void {
+        Route::get('/appointments', [AppointmentController::class, 'index']);
+        Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
+        Route::post('/appointments', [AppointmentController::class, 'store']);
+        Route::delete('/appointments/{appointment}', [AppointmentController::class, 'cancel']);
+    });
 
-    // PR 3 — agenda-http — State transitions.
-    Route::post('/appointments/{appointment}/transitions/confirm', [AppointmentTransitionController::class, 'confirm']);
-    Route::post('/appointments/{appointment}/transitions/complete', [AppointmentTransitionController::class, 'complete']);
-    Route::post('/appointments/{appointment}/transitions/no-show', [AppointmentTransitionController::class, 'markNoShow']);
+    // v1 — state transitions
+    Route::prefix('v1')->group(function (): void {
+        Route::post('/appointments/{appointment}/transitions/confirm', [AppointmentTransitionController::class, 'confirm']);
+        Route::post('/appointments/{appointment}/transitions/complete', [AppointmentTransitionController::class, 'complete']);
+        Route::post('/appointments/{appointment}/transitions/no-show', [AppointmentTransitionController::class, 'markNoShow']);
+    });
 
-    // PR 3 — agenda-http — Doctor directory.
-    Route::get('/doctors', [DoctorController::class, 'index']);
-    Route::get('/doctors/{doctor}', [DoctorController::class, 'show']);
-    Route::get('/doctors/{doctor}/slots', [DoctorController::class, 'slots']);
-    Route::get('/specialties', [SpecialtyController::class, 'index']);
-    Route::get('/patients/{patient}', [PatientController::class, 'show']);
-    Route::get('/medical-histories/{medical_history}', [MedicalHistoryController::class, 'show']);
-    Route::get('/medical-histories/{medical_history}/notes', [MedicalNoteController::class, 'index']);
-    Route::post('/medical-histories/{medical_history}/notes', [MedicalNoteController::class, 'store']);
-    Route::get('/medical-notes/{medical_note}', [MedicalNoteController::class, 'show']);
-    Route::post('/medical-notes/{medical_note}/amend', [MedicalNoteController::class, 'amend']);
-    Route::post('/medical-notes/{medical_note}/attachments', [MedicalAttachmentController::class, 'upload']);
-    Route::get('/medical-notes/{medical_note}/attachments', [MedicalAttachmentController::class, 'index']);
-    Route::delete('/medical-attachments/{medical_attachment}', [MedicalAttachmentController::class, 'destroy']);
-    Route::get('/prescriptions', [PrescriptionController::class, 'index']);
-    Route::post('/prescriptions', [PrescriptionController::class, 'store']);
-    Route::get('/prescriptions/{prescription}', [PrescriptionController::class, 'show']);
-    Route::put('/prescriptions/{prescription}', [PrescriptionController::class, 'update']);
-    Route::get('/prescriptions/{prescription}/pdf', [PrescriptionController::class, 'pdf']);
+    // v1 — doctor directory + availability (PRD RF-2.1, RF-2.2)
+    Route::prefix('v1')->group(function (): void {
+        Route::get('/doctors', [DoctorController::class, 'index']);
+        Route::get('/doctors/{doctor}', [DoctorController::class, 'show']);
+        Route::get('/doctors/{doctor}/availability', [DoctorController::class, 'slots']);
+        Route::get('/specialties', [SpecialtyController::class, 'index']);
+    });
+
+    // v1 — patient profile
+    Route::prefix('v1')->group(function (): void {
+        Route::get('/patients/{patient}', [PatientController::class, 'show']);
+    });
+
+    // v1 — medical history (PRD RF-3.1, RF-3.2, RF-3.4)
+    // Uses PatientMedicalHistoryController for auto-discovery from auth user.
+    // Legacy {medical_history} ID-based routes remain under /api/ for backward compat.
+    Route::prefix('v1')->group(function (): void {
+        Route::get('/medical-history', [PatientMedicalHistoryController::class, 'show']);
+        Route::get('/medical-history/notes', [PatientMedicalHistoryController::class, 'notes']);
+    });
+
+    // v1 — prescriptions (PRD RF-4.3)
+    Route::prefix('v1')->group(function (): void {
+        Route::get('/prescriptions', [PrescriptionController::class, 'index']);
+        Route::get('/prescriptions/{prescription}', [PrescriptionController::class, 'show']);
+        Route::get('/prescriptions/{prescription}/pdf', [PrescriptionController::class, 'pdf']);
+    });
+
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 });

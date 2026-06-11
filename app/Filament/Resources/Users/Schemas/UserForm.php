@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\Specialty;
+use App\Models\User;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rule;
 
 class UserForm
 {
@@ -22,13 +24,21 @@ class UserForm
                     ->label('Email address')
                     ->email()
                     ->required()
-                    ->unique(ignoreRecord: true)
+                    ->rule(
+                        fn (Get $get): \Illuminate\Validation\Rules\Unique | null => $get('role') === 'doctor'
+                            ? null
+                            : Rule::unique('users', 'email'),
+                    )
                     ->maxLength(255),
                 TextInput::make('password')
                     ->password()
                     ->revealable()
-                    ->required(fn (string $operation): bool => $operation === 'create')
-                    ->dehydrated(fn (string $operation): bool => $operation === 'create')
+                    ->required(fn (string $operation, Get $get): bool =>
+                        $operation === 'create' && $get('role') !== 'doctor'
+                    )
+                    ->dehydrated(fn (string $operation, Get $get): bool =>
+                        $operation === 'create' && $get('role') !== 'doctor'
+                    )
                     ->minLength(8)
                     ->maxLength(255),
                 Select::make('role')

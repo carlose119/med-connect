@@ -1,11 +1,14 @@
 <?php
 
 use App\Filament\Resources\Users\Pages\CreateUser;
+use App\Mail\InvitationActivated;
 use App\Models\AuditLog;
 use App\Models\Doctor;
 use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -27,7 +30,6 @@ it('admin creating a doctor writes a doctor.created audit log row', function () 
         ->fillForm([
             'name' => 'Dr. Smith',
             'email' => 'smith@example.com',
-            'password' => 'password',
             'role' => 'doctor',
             'specialty_id' => $specialty->id,
             'license_number' => 'LIC-001',
@@ -83,4 +85,29 @@ it('admin creating a patient writes a user.created audit log row', function () {
             'role' => 'patient',
             'email' => 'jane.patient@example.com',
         ]);
+});
+
+it('admin creating a doctor sends invitation email not temp password', function () {
+    Mail::fake();
+
+    $admin = User::factory()->admin()->create();
+    $specialty = Specialty::factory()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test(CreateUser::class)
+        ->fillForm([
+            'name' => 'Dr. Test',
+            'email' => 'doctor.test@example.com',
+            'role' => 'doctor',
+            'specialty_id' => $specialty->id,
+            'license_number' => 'MP-12345',
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Mail::assertQueued(InvitationActivated::class, function ($mail) {
+        return $mail->hasTo('doctor.test@example.com')
+            && Str::isUuid($mail->invitationToken);
+    });
 });

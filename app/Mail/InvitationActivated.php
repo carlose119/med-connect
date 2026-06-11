@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -10,13 +11,14 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class DoctorAccountCreated extends Mailable implements ShouldQueue
+class InvitationActivated extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public User $doctorUser,
-        public string $tempPassword,
+        public string $invitationToken,
+        public Carbon $expiresAt,
     ) {}
 
     public function envelope(): Envelope
@@ -29,12 +31,13 @@ class DoctorAccountCreated extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.doctor-account-created',
+            view: 'emails.doctor-invitation',
             with: [
                 'doctorName' => $this->doctorUser->name,
                 'email' => $this->doctorUser->email,
-                'tempPassword' => $this->tempPassword,
-                'loginUrl' => url('/doctor/login'),
+                'invitationToken' => $this->invitationToken,
+                'expiresAt' => $this->expiresAt,
+                'activationUrl' => url("/invitation/{$this->invitationToken}"),
             ],
         );
     }

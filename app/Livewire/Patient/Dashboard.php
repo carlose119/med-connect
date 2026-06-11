@@ -11,6 +11,19 @@ use Livewire\Component;
 #[Title('Dashboard')]
 class Dashboard extends Component
 {
+    public function mount(): void
+    {
+        $user = auth()->user();
+
+        if (! $user->isPatient()) {
+            abort(403, 'Solo pacientes pueden acceder a esta sección.');
+        }
+
+        if ($user->patient === null) {
+            abort(403, 'Tu cuenta no tiene un perfil de paciente asociado.');
+        }
+    }
+
     public function render(): View
     {
         $patient = auth()->user()->patient;

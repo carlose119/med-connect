@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'is_active', 'invitation_token', 'invitation_sent_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -33,6 +34,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'invitation_sent_at' => 'datetime',
         ];
     }
 
@@ -83,5 +85,44 @@ class User extends Authenticatable implements FilamentUser
     public function doctor(): HasOne
     {
         return $this->hasOne(Doctor::class);
+    }
+
+    /**
+     * Generate a UUID v4 invitation token, store its SHA-256 hash,
+     * and return the raw token for use in URLs and emails.
+     */
+    public function generateInvitationToken(): string
+    {
+        $rawToken = Str::uuid()->toString();
+        $this->invitation_token = hash('sha256', $rawToken);
+        $this->invitation_sent_at = now();
+        return $rawToken;
+    }
+
+    /**
+     * Whether this user has a pending (non-null) invitation token.
+     */
+    public function hasPendingInvitation(): bool
+    {
+        return $this->invitation_token !== null;
+    }
+
+    /**
+     * Whether the invitation token has expired.
+     * Default expiration: 7 days after invitation was sent.
+     */
+    public function isInvitationExpired(int $days = 7): bool
+    {
+        return $this->invitation_sent_at !== null
+            && $this->invitation_sent_at->addDays($days)->isPast();
+    }
+
+    /**
+     * Clear the invitation token and sent-at timestamp after activation.
+     */
+    public function clearInvitationToken(): void
+    {
+        $this->invitation_token = null;
+        $this->invitation_sent_at = null;
     }
 }
