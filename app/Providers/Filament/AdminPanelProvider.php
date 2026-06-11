@@ -2,7 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -19,7 +18,6 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 
@@ -31,7 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(fn (): \Illuminate\Http\RedirectResponse => $this->handleLogin())
+            ->login()
             ->brandName('med-connect Admin')
             ->colors([
                 'primary' => Color::Indigo,
@@ -62,20 +60,5 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugin(FilamentShieldPlugin::make())
             ->plugin(FilamentFullCalendarPlugin::make()->timezone('America/Argentina/Buenos_Aires'));
-    }
-
-    private function handleLogin(): \Illuminate\Http\RedirectResponse
-    {
-        $user = Auth::user();
-
-        if ($user && ! $user->isActive()) {
-            Auth::guard('web')->logout();
-
-            return redirect()
-                ->to(filament()->getLoginUrl())
-                ->with('error', 'Your account has been suspended.');
-        }
-
-        return redirect()->intended(filament()->getUrl());
     }
 }
