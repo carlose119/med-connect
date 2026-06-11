@@ -39,6 +39,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware([ResolveTimezone::class])->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 });
 
 Route::middleware([ResolveTimezone::class, 'auth:sanctum'])->group(function (): void {

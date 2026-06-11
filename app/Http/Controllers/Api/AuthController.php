@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\Api\UserResource;
 use App\Models\Patient;
+use App\Models\RefreshToken;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
@@ -15,30 +16,27 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 /**
  * Auth surface for the agenda-http API (REQ-API-7 auth scenarios).
  *
- *   login()  → POST   /api/auth/login    (public; returns {user, token})
- *   logout() → POST   /api/auth/logout   (auth; revokes current token; 204)
- *   me()     → GET    /api/auth/me       (auth; returns UserResource)
+ *   login()    → POST   /api/auth/login    (public; returns {user, token, refresh_token})
+ *   register() → POST   /api/auth/register (public; returns {user, token, refresh_token})
+ *   logout()   → POST   /api/auth/logout   (auth; revokes current token + refresh tokens; 204)
+ *   me()       → GET    /api/auth/me       (auth; returns UserResource)
+ *   refresh()  → POST   /api/auth/refresh  (public; exchange refresh_token for new tokens)
  *
- * The login route is registered OUTSIDE the `auth:sanctum` group but
- * INSIDE the `ResolveTimezone` group (design N7: 401 must also be
- * rendered in the requested TZ; here the TZ is purely cosmetic on
- * the response because the request body has no datetime).
+ * `login()` and `register()` generate both a Sanctum access token AND a
+ * refresh token (stored in the `refresh_tokens` table, hashed SHA-256,
+ * 30-day TTL). The refresh token is returned alongside the access token.
  *
- * `login()` calls `Auth::guard('web')->attempt()` (the default
- * `web` guard with the `App\Models\User` provider) and maps a
- * failed attempt to `AuthenticationException` so the PR 1
- * exception handler renders the standard 401 UNAUTHENTICATED
- * envelope. The `web` guard's session driver is unused for token
- * issuance — we only call `attempt()` for credential validation,
- * then `User::createToken()` for the Sanctum bearer token.
+ * `refresh()` validates the incoming refresh token, revokes it, generates
+ * a new access token + new refresh token, and returns both. This allows
+ * the mobile app to maintain sessions without re-entering credentials.
  *
- * `logout()` deletes only the current access token (not all the
- * user's tokens) so a client with multiple devices can log out of
- * one device without disrupting the others.
+ * `logout()` deletes the current Sanctum access token AND all refresh
+ * tokens for the user so a logout is truly clean across all devices.
  */
 class AuthController extends Controller
 {
@@ -65,16 +63,16 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::guard('web')->user();
 
-        // `device_name` is optional; default to a generic label so
-        // the personal_access_tokens row is never NULL.
-        $deviceName = (string) ($request->validated('device_name') ?? 'api-client');
+        $deviceName = (string) ($request->validated('device_name') ?? 'mobile-app');
 
         $token = $user->createToken($deviceName)->plainTextToken;
+        $refreshToken = $this->createRefreshToken($user, $deviceName);
 
         return new JsonResponse([
             'data' => [
                 'user' => new UserResource($user),
                 'token' => $token,
+                'refresh_token' => $refreshToken,
             ],
         ]);
     }
@@ -90,7 +88,13 @@ class AuthController extends Controller
      */
     public function logout(Request $request): Response
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        // Revoke current Sanctum token
+        $user->currentAccessToken()?->delete();
+
+        // Revoke all refresh tokens (clean logout across all devices)
+        RefreshToken::revokeAllForUser($user->id);
 
         return response()->noContent();
     }
@@ -172,12 +176,88 @@ class AuthController extends Controller
 
         $deviceName = (string) ($request->input('device_name') ?? 'mobile-app');
         $token = $user->createToken($deviceName)->plainTextToken;
+        $refreshToken = $this->createRefreshToken($user, $deviceName);
 
         return (new JsonResponse([
             'data' => [
                 'user' => new UserResource($user),
                 'token' => $token,
+                'refresh_token' => $refreshToken,
             ],
         ]))->setStatusCode(201);
+    }
+
+    /**
+     * POST /api/auth/refresh — exchange a refresh token for new access + refresh tokens.
+     *
+     * Wire shape:
+     *   Request:  { "refresh_token": "<plaintext>" }
+     *   Response: { "token": "<plaintext>", "refresh_token": "<plaintext>" }
+     *
+     * On success: the old refresh token is revoked and a new pair is issued.
+     * On failure (invalid/expired): returns 401 UNAUTHORIZED.
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        $plainToken = $request->input('refresh_token');
+
+        if (! is_string($plainToken) || blank($plainToken)) {
+            throw new AuthenticationException;
+        }
+
+        $storedToken = RefreshToken::findByToken($plainToken);
+
+        if (! $storedToken || ! $storedToken->isValid()) {
+            throw new AuthenticationException;
+        }
+
+        $user = $storedToken->user;
+        $deviceName = $storedToken->device_name ?? 'mobile-app';
+
+        // Revoke old refresh token
+        $storedToken->delete();
+
+        // Revoke old access token (force re-auth)
+        $user->currentAccessToken()?->delete();
+
+        // Issue new pair
+        $token = $user->createToken($deviceName)->plainTextToken;
+        $newRefreshToken = $this->createRefreshToken($user, $deviceName);
+
+        return new JsonResponse([
+            'token' => $token,
+            'refresh_token' => $newRefreshToken,
+        ]);
+    }
+
+    /**
+     * Create a hashed refresh token for the given user.
+     * Token TTL: 30 days.
+     */
+    private function createRefreshToken(User $user, string $deviceName): string
+    {
+        $plainToken = Str::random(64);
+        $hashedToken = hash('sha256', $plainToken);
+
+        RefreshToken::create([
+            'user_id' => $user->id,
+            'token' => $hashedToken,
+            'device_name' => $deviceName,
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        // Keep max 5 refresh tokens per user (remove oldest)
+        $count = RefreshToken::where('user_id', $user->id)->count();
+        if ($count > 5) {
+            $keepIds = RefreshToken::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->pluck('id');
+            RefreshToken::where('user_id', $user->id)
+                ->whereNotIn('id', $keepIds)
+                ->delete();
+        }
+
+        return $plainToken;
     }
 }

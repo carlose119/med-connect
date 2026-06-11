@@ -36,6 +36,7 @@ it('returns 200 with {data.user, data.token} for valid credentials', function ()
             'data' => [
                 'user' => ['id', 'name', 'email', 'role'],
                 'token',
+                'refresh_token',
             ],
         ])
         ->assertJsonPath('data.user.id', $user->id)
@@ -48,6 +49,11 @@ it('returns 200 with {data.user, data.token} for valid credentials', function ()
     $token = $response->json('data.token');
     expect($token)->toBeString();
     expect($token)->not->toBeEmpty();
+
+    // Refresh token is a 64-char random string
+    $refreshToken = $response->json('data.refresh_token');
+    expect($refreshToken)->toBeString();
+    expect($refreshToken)->toHaveLength(64);
 });
 
 it('returns 401 UNAUTHENTICATED for bad credentials', function (): void {
