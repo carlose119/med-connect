@@ -2,11 +2,13 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Doctor\Pages\RegisterWalkInPatient;
 use App\Filament\Doctor\Widgets\DoctorAppointmentCalendarWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -37,11 +39,19 @@ class DoctorPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                RegisterWalkInPatient::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
                 DoctorAppointmentCalendarWidget::class,
+            ])
+            ->navigationItems([
+                NavigationItem::make()
+                    ->label('Paciente sin Cita')
+                    ->url(fn (): string => RegisterWalkInPatient::getUrl())
+                    ->icon('heroicon-o-user-plus')
+                    ->sort(-1),
             ])
             ->middleware([
                 EncryptCookies::class,

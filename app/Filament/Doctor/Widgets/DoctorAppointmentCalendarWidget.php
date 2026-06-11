@@ -96,9 +96,9 @@ class DoctorAppointmentCalendarWidget extends FullCalendarWidget
             'title' => $apt->patient->user->name,
             'start' => $apt->start_time->toIso8601String(),
             'end' => $apt->end_time->toIso8601String(),
-            'color' => $this->getStatusColor($apt->state?->value ?? 'pending'),
+            'color' => $this->getStatusColor($apt->state ?? 'pending'),
             'extendedProps' => [
-                'state' => $apt->state?->value ?? 'pending',
+                'state' => $apt->state ?? 'pending',
                 'patient_phone' => $apt->patient->phone,
                 'notes' => $apt->notes,
                 'patient_id' => $apt->patient_id,

@@ -9,6 +9,10 @@ use App\Livewire\Patient\DoctorList;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('patient')->name('patient.')->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('patient.login');
+    });
+
     Route::middleware('guest')->group(function () {
         Route::get('login', [AuthController::class, 'createLogin'])->name('login');
         Route::post('login', [AuthController::class, 'storeLogin']);
