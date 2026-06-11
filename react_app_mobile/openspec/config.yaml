@@ -1,0 +1,47 @@
+# OpenSpec Configuration — react_app_mobile
+schema: spec-driven
+
+context: |
+  Tech stack: Expo 56 / React Native 0.85 / React 19 / TypeScript 6 (strict mode)
+  Architecture: Expo managed workflow, TypeScript strict, no navigation/routing yet, no test runner yet
+  API target: med-connect Laravel API at https://med-connect.test/api
+  Style: Clean component patterns, container/presentational separation (to be formalized)
+  Persistence: openspec file-based (no Engram)
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Ask-always PR strategy for changes affecting API contracts
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include architecture diagrams for complex flows
+    - Document decisions with rationale and tradeoffs
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing Expo/React Native patterns
+  verify:
+    - Run expo build or prebuild to verify compilation
+  archive:
+    - Warn before merging destructive deltas
+
+tdd: false
+test_command: ""
+coverage_threshold: 0
+build_command: "npx expo prebuild && npx expo run:android"
+
+testing:
+  strict_tdd: false
+  runner_available: false
+  reason: "No test runner installed yet (no Jest/Vitest in devDependencies)"
+  test_command: ""
+  coverage_command: ""
+
+delivery:
+  strategy: ask-on-risk
+  review_budget_lines: 400
+  pr_strategy: ask-always
+  workflow_mode: interactive
