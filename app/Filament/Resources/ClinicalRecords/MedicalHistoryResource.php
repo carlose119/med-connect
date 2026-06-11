@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ClinicalRecords;
 use App\Filament\Resources\ClinicalRecords\Pages\CreateMedicalHistory;
 use App\Filament\Resources\ClinicalRecords\Pages\EditMedicalHistory;
 use App\Filament\Resources\ClinicalRecords\Pages\ListMedicalHistories;
+use App\Filament\Resources\ClinicalRecords\Pages\ViewMedicalHistory;
 use App\Filament\Resources\ClinicalRecords\RelationManagers\MedicalNotesRelationManager;
 use App\Filament\Resources\ClinicalRecords\Schemas\CreateMedicalHistoryForm;
 use App\Filament\Resources\ClinicalRecords\Schemas\MedicalHistoryForm;
@@ -62,6 +63,7 @@ class MedicalHistoryResource extends Resource
         return [
             'index' => ListMedicalHistories::route('/'),
             'create' => CreateMedicalHistory::route('/create'),
+            'view' => ViewMedicalHistory::route('/{record}'),
             'edit' => EditMedicalHistory::route('/{record}/edit'),
         ];
     }
@@ -75,7 +77,8 @@ class MedicalHistoryResource extends Resource
 
     public static function canEdit($record): bool
     {
-        return false;
+        $user = auth()->user();
+        return $user?->isDoctor() || $user?->isAdmin();
     }
 
     public static function canDelete($record): bool

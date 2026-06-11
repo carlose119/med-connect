@@ -20,12 +20,17 @@ class PrescriptionItemsRelationManager extends RelationManager
 
     public function canDelete(mixed $record): bool
     {
-        return false;
+        return auth()->user()?->isDoctor() ?? false;
     }
 
     public function canCreate(): bool
     {
-        return false;
+        return auth()->user()?->isDoctor() ?? false;
+    }
+
+    public function canAdd(): bool
+    {
+        return auth()->user()?->isDoctor() ?? false;
     }
 
     public function table(Table $table): Table

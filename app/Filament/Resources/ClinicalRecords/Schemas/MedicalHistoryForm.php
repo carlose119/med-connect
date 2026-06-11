@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ClinicalRecords\Schemas;
 
+use App\Models\Doctor;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -19,11 +21,10 @@ class MedicalHistoryForm
                             ->disabled()
                             ->dehydrated(false)
                             ->formatStateUsing(fn ($record) => $record?->patient?->user?->name ?? '—'),
-                        TextInput::make('primary_doctor_name')
+                        Select::make('primary_doctor_id')
                             ->label('Primary Doctor')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->primaryDoctor?->user?->name ?? '—'),
+                            ->options(fn () => Doctor::with('user')->get()->mapWithKeys(fn ($d) => [$d->id => $d->user->name]))
+                            ->searchable(),
                         TextInput::make('opened_at')
                             ->label('Opened At')
                             ->disabled()

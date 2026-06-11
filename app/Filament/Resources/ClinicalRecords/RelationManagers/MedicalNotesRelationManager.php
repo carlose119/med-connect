@@ -53,7 +53,7 @@ class MedicalNotesRelationManager extends RelationManager
                             ->pluck('id', 'id')
                             ->toArray();
                     })
-                    ->required(),
+                    ->required(false),
                 Hidden::make('doctor_id')
                     ->default(fn () => auth()->user()?->doctor?->id),
             ]);

@@ -2,12 +2,29 @@
 
 namespace App\Filament\Resources\ClinicalRecords\Pages;
 
+use App\Models\MedicalHistory;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Auth\Access\AuthorizationException;
 
-class ViewPrescription extends ViewRecord
+class ViewMedicalHistory extends ViewRecord
 {
-    protected static string $resource = \App\Filament\Resources\ClinicalRecords\PrescriptionResource::class;
+    protected static string $resource = \App\Filament\Resources\ClinicalRecords\MedicalHistoryResource::class;
+
+    protected function authorizeAccess(): void
+    {
+        abort_unless(
+            static::getResource()::canViewAny(),
+            403,
+        );
+
+        $record = $this->getRecord();
+
+        abort_unless(
+            auth()->user()->can('view', $record),
+            403,
+        );
+    }
 
     protected function getHeaderActions(): array
     {

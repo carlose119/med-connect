@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ClinicalRecords\Schemas;
 
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -10,6 +12,8 @@ class PrescriptionForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $statusOptions = ['active' => 'Active', 'cancelled' => 'Cancelled'];
+
         return $schema
             ->components([
                 Fieldset::make('Prescription Details')
@@ -34,17 +38,14 @@ class PrescriptionForm
                             ->disabled()
                             ->dehydrated(false)
                             ->formatStateUsing(fn ($record) => $record?->issued_at?->format('Y-m-d H:i') ?? '—'),
-                        TextInput::make('status')
+                        Select::make('status')
                             ->label('Status')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => ucfirst($record?->status ?? '—')),
-                        TextInput::make('cancellation_reason')
+                            ->options($statusOptions)
+                            ->visible(fn ($record) => $record !== null),
+                        Textarea::make('cancellation_reason')
                             ->label('Cancellation Reason')
-                            ->disabled()
-                            ->dehydrated(false)
                             ->visible(fn ($record) => $record?->status === 'cancelled')
-                            ->formatStateUsing(fn ($record) => $record?->cancellation_reason ?? '—'),
+                            ->rows(2),
                         TextInput::make('items_count')
                             ->label('Items')
                             ->disabled()

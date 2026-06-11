@@ -3,6 +3,7 @@
 use App\Filament\Resources\ClinicalRecords\PrescriptionResource;
 use App\Filament\Resources\ClinicalRecords\Pages\ListPrescriptions;
 use App\Filament\Resources\ClinicalRecords\Pages\ViewPrescription;
+use App\Filament\Resources\ClinicalRecords\Pages\EditPrescription;
 use App\Filament\Resources\ClinicalRecords\RelationManagers\PrescriptionItemsRelationManager;
 use App\Models\Appointment;
 use App\Models\Doctor;
@@ -31,13 +32,13 @@ it('cannot create a prescription', function (): void {
     expect(PrescriptionResource::canCreate())->toBeFalse();
 });
 
-it('cannot edit a prescription', function (): void {
-    $user = User::factory()->admin()->create();
+it('doctors can edit a prescription', function (): void {
     $doctorUser = User::factory()->doctor()->create();
     $doctor = Doctor::factory()->for($doctorUser)->create();
     $prescription = Prescription::factory()->for($doctor)->create();
 
-    expect(PrescriptionResource::canEdit($prescription))->toBeFalse();
+    $this->actingAs($doctorUser);
+    expect(PrescriptionResource::canEdit($prescription))->toBeTrue();
 });
 
 it('cannot delete a prescription', function (): void {
@@ -53,10 +54,10 @@ it('registers PrescriptionItemsRelationManager in getRelations', function (): vo
     expect(PrescriptionResource::getRelations())->toContain(PrescriptionItemsRelationManager::class);
 });
 
-it('registers only index and view pages (no create, no edit)', function (): void {
+it('registers index, view, and edit pages (no create)', function (): void {
     $pages = PrescriptionResource::getPages();
-    expect($pages)->toHaveKeys(['index', 'view'])
-        ->not->toHaveKeys(['create', 'edit']);
+    expect($pages)->toHaveKeys(['index', 'view', 'edit'])
+        ->not->toHaveKeys(['create']);
 });
 
 // ─── List page renders ───────────────────────────────────────────────
@@ -95,9 +96,9 @@ it('no create page exposed', function (): void {
     expect($pages)->not->toHaveKey('create');
 });
 
-// ─── No edit page exposed ────────────────────────────────────────────
+// ─── Edit page exposed ───────────────────────────────────────────────
 
-it('no edit page exposed', function (): void {
+it('edit page is exposed', function (): void {
     $pages = PrescriptionResource::getPages();
-    expect($pages)->not->toHaveKey('edit');
+    expect($pages)->toHaveKey('edit');
 });
