@@ -45,12 +45,12 @@ Chain strategy: pending
 
 ## Phase 3: UI Layer (PR 3)
 
-- [ ] 3.1 Create `src/screens/auth/LoginScreen.tsx` — react-hook-form + Zod schema (email format, password ≥8 chars, `mode: 'onBlur'`), inline errors ("Ingresa un email válido", "La contraseña debe tener al menos 8 caracteres"), remember-me toggle, biometric button (conditional on `biometricAvailable`), submit button disabled during request
-- [ ] 3.2 Create `src/screens/auth/RegisterScreen.tsx` — 7-field form with Zod schema (all required fields, password_confirmation match, "Las contraseñas no coinciden", "Este campo es obligatorio"), submit disabled during request
-- [ ] 3.3 Create `src/navigation/AuthNavigator.tsx` — stack: LoginScreen (initial) ↔ RegisterScreen with links
-- [ ] 3.4 Create `src/navigation/MainNavigator.tsx` — stack with placeholder HomeScreen
-- [ ] 3.5 Create `src/navigation/AppNavigator.tsx` — conditional: `isLoading` → blank screen; `isAuthenticated === false` → AuthNavigator; `isAuthenticated === true` → MainNavigator
-- [ ] 3.6 Update `src/App.tsx` — wrap with `AuthProvider`, render `AppNavigator`
+- [x] 3.1 Create `src/screens/auth/LoginScreen.tsx` — react-hook-form + Zod schema (email format, password ≥8 chars, `mode: 'onBlur'`), inline errors ("Ingresa un email válido", "La contraseña debe tener al menos 8 caracteres"), remember-me toggle, biometric button (conditional on `biometricAvailable`), submit button disabled during request
+- [x] 3.2 Create `src/screens/auth/RegisterScreen.tsx` — 7-field form with Zod schema (all required fields, password_confirmation match, "Las contraseñas no coinciden", "Este campo es obligatorio"), submit disabled during request
+- [x] 3.3 Create `src/navigation/AuthNavigator.tsx` — stack: LoginScreen (initial) ↔ RegisterScreen with links
+- [x] 3.4 Create `src/navigation/MainNavigator.tsx` — stack with placeholder HomeScreen
+- [x] 3.5 Create `src/navigation/AppNavigator.tsx` — conditional: `isLoading` → blank screen; `isAuthenticated === false` → AuthNavigator; `isAuthenticated === true` → MainNavigator
+- [x] 3.6 Update `src/App.tsx` — wrap with `AuthProvider`, render `AppNavigator`
 
 ## Phase 4: Integration / Verification
 

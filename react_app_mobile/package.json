@@ -17,7 +17,8 @@
     "@react-navigation/native": "^7.0.0",
     "@react-navigation/native-stack": "^7.0.0",
     "react-native-screens": "latest",
-    "react-native-safe-area-context": "latest"
+    "react-native-safe-area-context": "latest",
+    "react-native-gesture-handler": "latest"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
